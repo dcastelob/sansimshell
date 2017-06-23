@@ -1,0 +1,19 @@
+---------------------------------------------------------------------
+* ZONE COMMANDS *
+---------------------------------------------------------------------
+zonecreate	: Create zone  
+		: zonecreate <"ZONE NAME"> <"ALIAS_1;ALIAS_2">
+
+zoneshow	: Lista all zones
+		: zoneshow
+
+zonedelete	: Delete zone
+		: zonedelete <ZONE NAME>
+
+zonerename	: Rename zone
+		: zonerename <ZONE NAME> <NEW ZONE NAME>
+
+zonecopy	: Copy zone
+		: zonecopy <ZONE NAME> <NEW ZONE NAME>
+
+

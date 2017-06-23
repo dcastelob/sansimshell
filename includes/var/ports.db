@@ -1,0 +1,12 @@
+Index	slot	port	Address	Media	Speed	State	Proto
+==============================================================
+0	1	0	8d0000	id	N8	Online	FC	F-Port 10:00:ff:05:1e:4b:d5:00
+0	1	1	8d0100	id	N8	Online	FC	F-Port 10:00:ff:05:1e:4b:d5:01
+0	1	2	8d0200	id	N8	Online	FC	F-Port 10:00:ff:05:1e:4b:d5:02
+0	1	3	8d0300	id	N8	Online	FC	F-Port 10:00:ff:05:1e:4b:d5:03
+0	1	4	8d0400	id	N8	Online	FC	F-Port 10:00:ff:05:1e:4b:d5:04
+0	1	5	8d0500	id	N8	Online	FC	F-Port 10:00:ff:05:1e:4b:d5:05
+0	1	6	8d0600	id	N8	Online	FC	F-Port 10:00:ff:05:1e:4b:d5:06
+0	1	7	8d0700	id	N8	Online	FC	F-Port 10:00:ff:05:1e:4b:d5:07
+0	1	8	8d0800	id	N8	Online	FC	F-Port 10:00:ff:05:1e:4b:d5:08
+

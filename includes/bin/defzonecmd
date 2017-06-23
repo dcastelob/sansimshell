@@ -1,0 +1,270 @@
+#!/bin/bash
+# comando "switchshow"
+
+PATH="/usr/lib64/qt-3.3/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin:/home/dcastelob/.local/bin:/home/dcastelob/bin"
+
+CFG_FILE="includes/var/cfgs.db"
+ZONE_FILE="includes/var/zones.db"
+ALIAS_FILE="includes/var/alias.db"
+PORTS_FILE="includes/var/ports.db"
+DEFZONE_FILE="includes/var/defzones.db"
+
+ENTIDADE="Defzone"
+
+function consulte()
+{
+	ITEM="$1"
+	FILE="$2"
+	EXISTE=""
+	EXISTE=$(cat "$FILE" | grep "$ITEM -")
+	if [ -z "$EXISTE" ];then
+		echo 0
+	else
+		echo 1	
+	fi
+}
+
+function consulte2()
+{
+	ITEM="$1"
+	FILE="$2"
+	EXISTE=""
+	EXISTE=$(cat "$FILE" | grep "$ITEM")
+	if [ -z "$EXISTE" ];then
+		echo 0
+	else
+		echo 1	
+	fi
+}
+
+function listAll()
+{
+#	echo "============================================================================="
+#	echo " List - All ${ENTIDADE}s"
+#	echo "============================================================================="	
+#	cat "$DEFZONE_FILE" | sed 's/-/\t-\t/g'
+	cat "$DEFZONE_FILE" 
+	
+}
+
+
+function insert()
+{
+	NAME="$1"
+	ZONES="$2"
+	
+	ZONE1=$(echo "$2" | awk -F";" '{print $1}')
+	ZONE2=$(echo "$2" | awk -F";" '{print $2}')
+	
+	#echo "ALIASES- $ALIAS1 e $ALIAS2"  #DEBUG
+	EXISTE1=""
+	EXISTE2=""
+	
+	EXISTE1=$(consulte "$NAME" "$DEFZONE_FILE")
+	EXISTE2=$(consulte2 "$ZONE1" "$ZONE_FILE")
+	EXISTE3=$(consulte2 "$ZONE2" "$ZONE_FILE")
+	
+	if [ "$EXISTE1" -eq 0 ] && [ "$EXISTE2" -eq 1 ] && [ "$EXISTE3" -eq 1 ]  ;then
+		echo "$NAME - DISABLE - $ZONE1 - $ZONE2" >> "$DEFZONE_FILE"
+		echo "$ENTIDADE \"$NAME\" criado com sucesso."
+		listAll
+	else
+		echo "Não foi possivel criar a $ENTIDADE, Verifique o <Zone Name> ou <Alias names> informados"
+		#echo "Alias $ALIAS_NAME já existe."	
+	fi
+}
+
+
+function delete()
+{
+	NAME="$1"
+	EXISTE=""
+	EXISTE=$(consulte "$NAME" "$DEFZONE_FILE")
+	if [ "$EXISTE" -eq 0 ];then
+		echo "$ENTIDADE \"$NAME\" não localizado."
+	else 
+		cat "$DEFZONE_FILE" | grep -v "$NAME - " > temp
+		cat "temp" > "$DEFZONE_FILE"
+		rm -f temp
+		echo "$ENTIDADE \"$NAME\" removido."
+		listAll
+	fi
+}
+
+
+function rename()
+{
+	NAME="$1"
+	NEW_NAME="$2"
+	EXISTE=""
+	EXISTE=$(consulte "$NAME" "$DEFZONE_FILE")
+	if [ "$EXISTE" -eq 0 ];then
+		echo "$ENTIDADE $NAME não localizado."
+	else 
+		EXISTE=""
+		EXISTE=$(consulte "$NEW_NAME" "$DEFZONE_FILE")
+		if [ "$EXISTE" -eq 0 ];then
+			NOVO=$(cat "$DEFZONE_FILE" | grep "$NAME - "| sed "s/$NAME/$NEW_NAME/" )
+			cat "$DEFZONE_FILE" | grep -v "$NAME - " > temp
+			cat "temp" > "$DEFZONE_FILE"
+			echo "$NOVO" >> "$DEFZONE_FILE"
+			echo "$ENTIDADE \"$NAME\" renomeada para \"$NEW_NAME\" com sucesso."
+			listAll
+		else 
+			echo "$ENTIDADE \"$NEW_NAME\" já existe."
+		fi
+		
+		
+	fi
+}
+
+
+function copy()
+{
+	NAME="$1"
+	NEW_NAME="$2"
+	EXISTE=""
+	EXISTE=$(consulte "$NAME" "$DEFZONE_FILE")
+	if [ "$EXISTE" -eq 0 ];then
+		echo "$ENTIDADE $NAME não localizado."
+		return 0
+	else 
+		EXISTE=""
+		EXISTE=$(consulte "$NEW_NAME" "$DEFZONE_FILE")
+		if [ "$EXISTE" -eq 0 ];then
+			NOVO=$(cat "$DEFZONE_FILE" | grep "$NAME - "| sed "s/$NAME/$NEW_NAME/" )
+
+			echo "$NOVO" >> "$DEFZONE_FILE"
+			echo "$ENTIDADE \"$NAME\" copiada para \"$NEW_NAME\" com sucesso."
+			listAll
+		else 
+			echo "$ENTIDADE \"$NEW_NAME\" já existe."
+		fi
+		
+	fi
+}
+
+function enable()
+{
+	NAME="$1"
+	NEW_NAME="$2"
+	EXISTE=""
+	EXISTE=$(consulte "$NAME" "$DEFZONE_FILE")
+	if [ "$EXISTE" -eq 0 ];then
+		echo "$ENTIDADE $NAME não localizado."
+	else 
+		#Desativando todos
+		sed -i "s/ENABLE/DISABLE/" $DEFZONE_FILE 
+		# ativando apenas o item desejado			
+		NOVO=$(cat "$DEFZONE_FILE" | grep "$NAME - "| sed "s/DISABLE/ENABLE/" )
+		cat "$DEFZONE_FILE" | grep -v "$NAME - " > temp
+		cat "temp" > "$DEFZONE_FILE"
+		echo "$NOVO" >> "$DEFZONE_FILE"
+		echo "$ENTIDADE \"$NAME\" ativada com sucesso."	
+		listAll		
+	fi
+}
+
+function noaccess()
+{
+	echo "You are about to set the Default Zone acces mode to No Access"
+	echo "Do you want to set the Defaul Zone access mode to No Access? (yes, y, no, n): [no] "
+	read -p " " RESP
+	
+	RESP=$(echo "${RESP:-"N"}")
+	RESP=$(echo $RESP| tr [a-z] [A-Z])
+		
+	case $RESP in 	
+		Y|YES)	
+			sed -i "s/committed 	- Access/committed 	- No Access/" $DEFZONE_FILE 
+			echo "$ENTIDADE update sucessfuly."	
+			listAll
+			;;
+		N|NO)
+			echo "Aborted"
+			;;
+		*)
+			echo
+			echo "Invalid option	select (yes, y, no, n)"
+			echo "Aborted"
+			;;			
+	esac
+	 
+	
+
+}
+
+function access()
+{
+	
+	echo "You are about to set the Default Zone acces mode to Access"
+	echo "Do you want to set the Defaul Zone access mode to Access? (yes, y, no, n): [no] "
+	read -p " " RESP
+	
+	RESP=$(echo "${RESP:-"N"}")
+	RESP=$(echo $RESP| tr [a-z] [A-Z])
+		
+	case $RESP in 	
+		Y|YES)	
+			sed -i "s/committed 	- No Access/committed 	- Access/" $DEFZONE_FILE 
+			echo "$ENTIDADE update sucessfuly."	
+			listAll		
+			;;
+		N|NO)
+			echo "Aborted"
+			;;
+		*)
+			echo
+			echo "Invalid option	select (yes, y, no, n)"
+			echo "Aborted"
+			;;			
+	esac
+	
+	
+}
+
+function disable()
+{
+	NAME="$1"
+	NEW_NAME="$2"
+	EXISTE=""
+	EXISTE=$(consulte "$NAME" "$DEFZONE_FILE")
+	if [ "$EXISTE" -eq 0 ];then
+		echo "$ENTIDADE $NAME não localizado."
+	else 
+		#Desativando todos
+		sed -i "s/ENABLE/DISABLE/" $DEFZONE_FILE 
+		# ativando apenas o item desejado			
+		NOVO=$(cat "$DEFZONE_FILE" | grep "$NAME - "| sed "s/ENABLE/DISABLE/" )
+		cat "$DEFZONE_FILE" | grep -v "$NAME - " > temp
+		cat "temp" > "$DEFZONE_FILE"
+		echo "$NOVO" >> "$DEFZONE_FILE"
+		echo "$ENTIDADE \"$NAME\" desativada com sucesso."	
+		listAll		
+	fi
+}
+
+OP=""
+OP=$(echo "chamada- $0"| cut -d"/" -f4)
+#echo "Opção: $OP"  ## DEBUG
+
+case "$OP" in
+	"defzone")
+		case "$1" in
+		"--show")
+			listAll
+			;;
+		"--noaccess")
+			noaccess
+			;;
+		"--access")
+			access
+			;;			
+		esac
+		;;
+	
+	*)
+		echo "Not implemented!"	
+	;;
+esac
+

@@ -1,0 +1,187 @@
+#!/bin/bash
+# comando "switchshow"
+
+PATH="/usr/lib64/qt-3.3/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin:/home/dcastelob/.local/bin:/home/dcastelob/bin"
+
+ZONE_FILE="includes/var/zones.db"
+ALIAS_FILE="includes/var/alias.db"
+PORTS_FILE="includes/var/ports.db"
+
+ENTIDADE="Zone"
+
+function consulte()
+{
+	ITEM="$1"
+	FILE="$2"
+	EXISTE=""
+	EXISTE=$(cat "$FILE" | grep "$ITEM -")
+	if [ -z "$EXISTE" ];then
+		echo 0
+	else
+		echo 1	
+	fi
+}
+
+function consulte2()
+{
+	ITEM="$1"
+	FILE="$2"
+	EXISTE=""
+	EXISTE=$(cat "$FILE" | grep "$ITEM")
+	if [ -z "$EXISTE" ];then
+		echo 0
+	else
+		echo 1	
+	fi
+}
+
+function listAll()
+{
+	echo "============================================================================="
+	echo " List - All ${ENTIDADE}s"
+	echo "============================================================================="
+	cat "$ZONE_FILE" | sed 's/-/\t-\t/g'
+	
+}
+
+function insert()
+{
+	NAME="$1"
+	ALIASES="$2"
+	
+	ALIAS1=$(echo "$2" | awk -F";" '{print $1}')
+	ALIAS2=$(echo "$2" | awk -F";" '{print $2}')
+	
+	#echo "ALIASES- $ALIAS1 e $ALIAS2"  #DEBUG
+	EXISTE1=""
+	EXISTE2=""
+	
+	EXISTE1=$(consulte "$NAME" "$ZONE_FILE")
+	EXISTE2=$(consulte2 "$ALIAS1" "$ALIAS_FILE")
+	EXISTE3=$(consulte2 "$ALIAS2" "$ALIAS_FILE")
+	
+	if [ "$EXISTE1" -eq 0 ] && [ "$EXISTE2" -eq 1 ] && [ "$EXISTE3" -eq 1 ]  ;then
+		echo "$NAME - $ALIAS1 - $ALIAS2" >> "$ZONE_FILE"
+		echo "$ENTIDADE $NAME criado com sucesso."
+		listAll
+	else
+		echo "Não foi possivel criar a $ENTIDADE, Verifique o <Zone Name> ou <Alias names> informados"
+		#echo "Alias $ALIAS_NAME já existe."	
+	fi
+}
+
+
+
+function delete()
+{
+	NAME="$1"
+	EXISTE=""
+	EXISTE=$(consulte "$NAME" "$ZONE_FILE")
+	if [ "$EXISTE" -eq 0 ];then
+		echo "$ENTIDADE \"$NAME\" não localizado."
+	else 
+		cat "$ZONE_FILE" | grep -v "$NAME - " > temp
+		cat "temp" > "$ZONE_FILE"
+		rm -f temp
+		echo "$ENTIDADE \"$NAME\" removido."
+		listAll
+	fi
+}
+
+
+function rename()
+{
+	NAME="$1"
+	NEW_NAME="$2"
+	EXISTE=""
+	EXISTE=$(consulte "$NAME" "$ZONE_FILE")
+	if [ "$EXISTE" -eq 0 ];then
+		echo "$ENTIDADE $NAME não localizado."
+	else 
+		EXISTE=""
+		EXISTE=$(consulte "$NEW_NAME" "$ZONE_FILE")
+		if [ "$EXISTE" -eq 0 ];then
+			NOVO=$(cat "$ZONE_FILE" | grep "$NAME - "| sed "s/$NAME/$NEW_NAME/" )
+			cat "$ZONE_FILE" | grep -v "$NAME - " > temp
+			cat "temp" > "$ZONE_FILE"
+			echo "$NOVO" >> "$ZONE_FILE"
+			echo "$ENTIDADE \"$NAME\" renomeada para \"$NEW_NAME\" com sucesso."
+			listAll
+		else 
+			echo "$ENTIDADE \"$NEW_NAME\" já existe."
+		fi
+		
+		
+	fi
+}
+
+
+function copy()
+{
+	NAME="$1"
+	NEW_NAME="$2"
+	EXISTE=""
+	EXISTE=$(consulte "$NAME" "$ZONE_FILE")
+	if [ "$EXISTE" -eq 0 ];then
+		echo "$ENTIDADE $NAME não localizado."
+		return 0
+	else 
+		EXISTE=""
+		EXISTE=$(consulte "$NEW_NAME" "$ZONE_FILE")
+		if [ "$EXISTE" -eq 0 ];then
+			NOVO=$(cat "$ZONE_FILE" | grep "$NAME - "| sed "s/$NAME/$NEW_NAME/" )
+
+			echo "$NOVO" >> "$ZONE_FILE"
+			echo "$ENTIDADE \"$NAME\" copiada para \"$NEW_NAME\" com sucesso."
+			listAll
+		else 
+			echo "$ENTIDADE \"$NEW_NAME\" já existe."
+		fi
+		
+	fi
+}
+
+
+
+OP=""
+OP=$(echo "chamada- $0"| cut -d"/" -f4)
+#echo "Opção: $OP"  ## DEBUG
+
+case "$OP" in
+	zonecreate)
+		if [ "$#" -lt 2 ]; then
+			echo "Sintaxe error- $OP <ZONE NAME> <\"ALIAS_1;ALIAS_2\">"
+		else
+			insert "$1" "$2"
+		fi	
+		;;
+	zoneshow)
+		listAll
+		;;
+	
+	zonedelete)
+		if [ "$#" -lt 1 ]; then
+			echo "Sintaxe error- $OP <ZONE NAME>"
+		else
+			delete "$1"
+		fi	
+		;;
+	zonerename)
+		if [ "$#" -lt 2 ]; then
+			echo "Sintaxe error- $OP <ZONE NAME> <NEW ZONE NAME>"
+		else
+			rename "$1" "$2"
+		fi	
+		;;
+	zonecopy)
+		if [ "$#" -lt 2 ]; then
+			echo "Sintaxe error- $OP <ZONE NAME> <NEW ZONE NAME>"
+		else
+			copy "$1" "$2"
+		fi	
+		;;
+	*)
+		echo "Not implemented!"	
+	;;
+esac
+

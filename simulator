@@ -1,0 +1,44 @@
+#!/bin/bash
+
+source includes/conf/simulator.conf
+
+echo -e "$BANNER"
+echo
+sleep 1s
+SUCESSO=0
+for TENTATIVAS in $(seq 1 $LOGINTRY);do
+	read -p "$USERPROMPT" MYUSER
+	read -s -p "$PASSPROMPT" MYPASS
+	if [ "$USER" == "$MYUSER" ] && [ "$PASS" == "$MYPASS" ] ;then	
+		echo -e "\n$WELLCOME_MSG $MYUSER"
+		echo "-------------------------------------------------------------"
+		sleep 1s
+		SUCESSO=1
+		break
+	else
+		echo -e "\nUser or pass inválid!"
+	fi
+done
+
+if [ "$SUCESSO" -ne 1 ];then
+	exit	
+fi
+
+echo "Para consultar os comandos disponiveis digite: help"
+PATH=$(pwd)/include
+while [ true ]; do
+	echo
+	read -p "$SWITCHNAME:$MYUSER> " CMD
+	
+	case $CMD in
+	"exit"|quit)
+		exit 0	
+		;;
+	*)	
+		eval "$PATH_BIN/$CMD 2> /dev/null"
+		#	eval "includes/$CMD"
+		;;
+	esac
+	
+done
+

@@ -1,0 +1,9 @@
+#!/bin/bash
+# comando "help"
+
+PATH="/usr/lib64/qt-3.3/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin:/home/dcastelob/.local/bin:/home/dcastelob/bin"
+
+HELP_DIR="includes/help_pages"
+echo
+eval "cat $HELP_DIR/*.help"
+echo

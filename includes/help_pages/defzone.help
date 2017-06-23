@@ -1,0 +1,12 @@
+---------------------------------------------------------------------
+* DEFZONE COMMANDS *
+---------------------------------------------------------------------
+defzone	--show	 	: List zone definitions
+				 	: defzone	--show
+
+defzone	--access 	: Update zone definitions
+					: defzone	--access
+
+defzone	--noaccess	: Update zone definitions
+					: defzone	--noaccess
+

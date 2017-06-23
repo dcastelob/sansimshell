@@ -1,0 +1,19 @@
+---------------------------------------------------------------------
+* ALIAS COMMANDS *
+---------------------------------------------------------------------
+alicreate	: Create alias  
+		: alicreate <ALIAS NAME> <WWPN>
+
+alishow		: Lista all alias
+		: alishow
+
+alidelete	: Delete alias
+		: alidelete <ALIAS NAME>
+
+alirename	: Rename alias
+		: alirename <ALIAS NAME> <NEW ALIAS NAME>
+
+alicopy		: Copy alias
+		: alicopy <ALIAS NAME> <NEW ALIAS NAME>
+
+

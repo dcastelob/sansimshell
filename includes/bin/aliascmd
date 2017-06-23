@@ -1,0 +1,176 @@
+#!/bin/bash
+# comando "switchshow"
+
+PATH="/usr/lib64/qt-3.3/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin:/home/dcastelob/.local/bin:/home/dcastelob/bin"
+
+ALIAS_FILE="includes/var/alias.db"
+PORTS_FILE="includes/var/ports.db"
+
+
+function consulte()
+{
+	ITEM="$1"
+	FILE="$2"
+	EXISTE=""
+	EXISTE=$(cat "$FILE" | grep "$ITEM -")
+	if [ -z "$EXISTE" ];then
+		echo 0
+	else
+		echo 1	
+	fi
+}
+
+function consulte2()
+{
+	ITEM="$1"
+	FILE="$2"
+	EXISTE=""
+	EXISTE=$(cat "$FILE" | grep "$ITEM")
+	if [ -z "$EXISTE" ];then
+		echo 0
+	else
+		echo 1	
+	fi
+}
+
+function listAll()
+{
+	echo "============================================================================="
+	echo " List - All Alias"
+	echo "============================================================================="
+	cat "$ALIAS_FILE" | sed 's/-/\t-\t/g'
+	
+}
+
+
+function insert()
+{
+	ALIAS_NAME="$1"
+	WWPN="$2"
+	
+	EXISTE1=""
+	EXISTE2=""
+	
+	EXISTE1=$(consulte "$ALIAS_NAME" "$ALIAS_FILE")
+	EXISTE2=$(consulte2 "$WWPN" "$PORTS_FILE")
+	
+	if [ "$EXISTE1" -eq 0 ] && [ "$EXISTE2" -eq 1 ] ;then
+		echo "$ALIAS_NAME - $WWPN" >> "$ALIAS_FILE"
+		echo "Alias $ALIAS_NAME criado com sucesso."
+		listAll
+	else
+		echo "Não foi possivel criar o Alias, Verifique o <Alias Name> ou <Port> informados"
+		#echo "Alias $ALIAS_NAME já existe."	
+	fi
+}
+
+
+function delete()
+{
+	ALIAS_NAME="$1"
+	EXISTE=""
+	EXISTE=$(consulte "$ALIAS_NAME" "$ALIAS_FILE")
+	if [ "$EXISTE" -eq 0 ];then
+		echo "Alias $ALIAS_NAME não localizado."
+	else 
+		cat "$ALIAS_FILE" | grep -v "$ALIAS_NAME - " > temp
+		cat "temp" > "$ALIAS_FILE"
+		rm -f temp
+		echo "Alias $ALIAS_NAME removido."
+		listAll
+	fi
+}
+
+
+function rename()
+{
+	ALIAS_NAME="$1"
+	NEW_ALIAS_NAME="$2"
+	EXISTE=""
+	EXISTE=$(consulte "$ALIAS_NAME" "$ALIAS_FILE")
+	if [ "$EXISTE" -eq 0 ];then
+		echo "Alias $ALIAS_NAME não localizado."
+	else 
+		EXISTE=""
+		EXISTE=$(consulte "$NEW_ALIAS_NAME" "$ALIAS_FILE")
+		if [ "$EXISTE" -eq 0 ];then
+			NOVO=$(cat "$ALIAS_FILE" | grep "$ALIAS_NAME - "| sed "s/$ALIAS_NAME/$NEW_ALIAS_NAME/" )
+			cat "$ALIAS_FILE" | grep -v "$ALIAS_NAME - " > temp
+			cat "temp" > "$ALIAS_FILE"
+			echo "$NOVO" >> "$ALIAS_FILE"
+			listAll
+		else 
+			echo "Alias $NEW_ALIAS_NAME já existe."
+		fi
+		
+		
+	fi
+}
+
+
+function copy()
+{
+	ALIAS_NAME="$1"
+	NEW_ALIAS_NAME="$2"
+	EXISTE=""
+	EXISTE=$(consulte "$ALIAS_NAME" "$ALIAS_FILE")
+	if [ "$EXISTE" -eq 0 ];then
+		echo "Alias $ALIAS_NAME não localizado."
+		return 0
+	else 
+		EXISTE=""
+		EXISTE=$(consulte "$NEW_ALIAS_NAME" "$ALIAS_FILE")
+		if [ "$EXISTE" -eq 0 ];then
+			NOVO=$(cat "$ALIAS_FILE" | grep "$ALIAS_NAME - "| sed "s/$ALIAS_NAME/$NEW_ALIAS_NAME/" )
+
+			echo "$NOVO" >> "$ALIAS_FILE"
+			listAll
+		else 
+			echo "Alias $NEW_ALIAS_NAME já existe."
+		fi
+		
+	fi
+}
+
+OP=$(echo "chamada- $0"| cut -d"/" -f4)
+#echo "Opção: $OP"  ## DEBUG
+
+case "$OP" in
+	alicreate)
+		if [ "$#" -lt 2 ]; then
+			echo "Sintaxe error- $OP <ALIAS NAME> <WWPN>"
+		else
+			insert "$1" "$2"
+		fi	
+		;;
+	alishow)
+		listAll
+		;;
+	
+	alidelete)
+		if [ "$#" -lt 1 ]; then
+			echo "Sintaxe error- $OP <ALIAS NAME>"
+		else
+			delete "$1"
+		fi	
+		;;
+	alirename)
+		if [ "$#" -lt 2 ]; then
+			echo "Sintaxe error- $OP <ALIAS NAME> <NEW ALIAS NAME>"
+		else
+			rename "$1" "$2"
+		fi	
+		;;
+	alicopy)
+		if [ "$#" -lt 2 ]; then
+			echo "Sintaxe error- $OP <ALIAS NAME> <NEW ALIAS NAME>"
+		else
+			copy "$1" "$2"
+		fi	
+		;;
+	*)
+		echo "Not implemented!"	
+	;;
+esac
+
+

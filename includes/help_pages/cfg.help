@@ -1,0 +1,24 @@
+---------------------------------------------------------------------
+* CFG COMMANDS *
+---------------------------------------------------------------------
+cfgcreate	: Create cfg  
+		: cfgcreate <"CFG NAME"> <"ZONE_1;ZONE_2">
+
+cfgshow		: Lista all cfgs
+		: cfgshow
+
+cfgdelete	: Delete cfg
+		: cfgdelete <CFG NAME>
+
+cfgrename	: Rename cfg
+		: cfgrename <CFG NAME> <NEW CFG NAME>
+
+cfgcopy		: Copy cfg
+		: cfgcopy <CFG NAME> <NEW CFG NAME>
+
+cfgenable	: Enable cfg
+		: cfgenable <CFG NAME> 
+
+cfgdisable	: Disable cfg
+		: cfgdisable <CFG NAME>
+

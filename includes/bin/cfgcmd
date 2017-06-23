@@ -1,0 +1,277 @@
+#!/bin/bash
+# comando "switchshow"
+
+PATH="/usr/lib64/qt-3.3/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin:/home/dcastelob/.local/bin:/home/dcastelob/bin"
+
+CFG_FILE="includes/var/cfgs.db"
+ZONE_FILE="includes/var/zones.db"
+ALIAS_FILE="includes/var/alias.db"
+PORTS_FILE="includes/var/ports.db"
+DEFZONE_FILE="includes/var/defzones.db"
+
+ENTIDADE="Cfg"
+
+function consulte()
+{
+	ITEM="$1"
+	FILE="$2"
+	EXISTE=""
+	EXISTE=$(cat "$FILE" | grep "$ITEM -")
+	if [ -z "$EXISTE" ];then
+		echo 0
+	else
+		echo 1	
+	fi
+}
+
+function consulte2()
+{
+	ITEM="$1"
+	FILE="$2"
+	EXISTE=""
+	EXISTE=$(cat "$FILE" | grep "$ITEM")
+	if [ -z "$EXISTE" ];then
+		echo 0
+	else
+		echo 1	
+	fi
+}
+
+function listAll()
+{
+#	echo "============================================================================="
+#	echo " List - All ${ENTIDADE}s"
+#	echo "============================================================================="	
+	echo "Defined configuration:"
+	cat "$CFG_FILE" | sed 's/-/\t-\t/g'
+	echo
+	cat "$DEFZONE_FILE" 
+}
+
+
+function insert()
+{
+	NAME="$1"
+	ZONES="$2"
+	
+	ZONE1=$(echo "$2" | awk -F";" '{print $1}')
+	ZONE2=$(echo "$2" | awk -F";" '{print $2}')
+	
+	#echo "ALIASES- $ALIAS1 e $ALIAS2"  #DEBUG
+	EXISTE1=""
+	EXISTE2=""
+	
+	EXISTE1=$(consulte "$NAME" "$CFG_FILE")
+	EXISTE2=$(consulte2 "$ZONE1" "$ZONE_FILE")
+	EXISTE3=$(consulte2 "$ZONE2" "$ZONE_FILE")
+	
+	if [ "$EXISTE1" -eq 0 ] && [ "$EXISTE2" -eq 1 ] && [ "$EXISTE3" -eq 1 ]  ;then
+		echo "$NAME - DISABLE - $ZONE1 - $ZONE2" >> "$CFG_FILE"
+		echo "$ENTIDADE \"$NAME\" criado com sucesso."
+		listAll
+	else
+		echo "Não foi possivel criar a $ENTIDADE, Verifique o <Zone Name> ou <Alias names> informados"
+		#echo "Alias $ALIAS_NAME já existe."	
+	fi
+}
+
+
+function delete()
+{
+	NAME="$1"
+	EXISTE=""
+	EXISTE=$(consulte "$NAME" "$CFG_FILE")
+	if [ "$EXISTE" -eq 0 ];then
+		echo "$ENTIDADE \"$NAME\" não localizado."
+	else 
+		cat "$CFG_FILE" | grep -v "$NAME - " > temp
+		cat "temp" > "$CFG_FILE"
+		rm -f temp
+		echo "$ENTIDADE \"$NAME\" removido."
+		listAll
+	fi
+}
+
+
+function rename()
+{
+	NAME="$1"
+	NEW_NAME="$2"
+	EXISTE=""
+	EXISTE=$(consulte "$NAME" "$CFG_FILE")
+	if [ "$EXISTE" -eq 0 ];then
+		echo "$ENTIDADE $NAME não localizado."
+	else 
+		EXISTE=""
+		EXISTE=$(consulte "$NEW_NAME" "$CFG_FILE")
+		if [ "$EXISTE" -eq 0 ];then
+			NOVO=$(cat "$CFG_FILE" | grep "$NAME - "| sed "s/$NAME/$NEW_NAME/" )
+			cat "$CFG_FILE" | grep -v "$NAME - " > temp
+			cat "temp" > "$CFG_FILE"
+			echo "$NOVO" >> "$CFG_FILE"
+			echo "$ENTIDADE \"$NAME\" renomeada para \"$NEW_NAME\" com sucesso."
+			listAll
+		else 
+			echo "$ENTIDADE \"$NEW_NAME\" já existe."
+		fi
+		
+		
+	fi
+}
+
+
+function copy()
+{
+	NAME="$1"
+	NEW_NAME="$2"
+	EXISTE=""
+	EXISTE=$(consulte "$NAME" "$CFG_FILE")
+	if [ "$EXISTE" -eq 0 ];then
+		echo "$ENTIDADE $NAME não localizado."
+		return 0
+	else 
+		EXISTE=""
+		EXISTE=$(consulte "$NEW_NAME" "$CFG_FILE")
+		if [ "$EXISTE" -eq 0 ];then
+			NOVO=$(cat "$CFG_FILE" | grep "$NAME - "| sed "s/$NAME/$NEW_NAME/" )
+
+			echo "$NOVO" >> "$CFG_FILE"
+			echo "$ENTIDADE \"$NAME\" copiada para \"$NEW_NAME\" com sucesso."
+			listAll
+		else 
+			echo "$ENTIDADE \"$NEW_NAME\" já existe."
+		fi
+		
+	fi
+}
+
+function enable()
+{
+	NAME="$1"
+	NEW_NAME="$2"
+	EXISTE=""
+	EXISTE=$(consulte "$NAME" "$CFG_FILE")
+	if [ "$EXISTE" -eq 0 ];then
+		echo "$ENTIDADE $NAME não localizado."
+	else 
+		#Desativando todos
+		sed -i "s/ENABLE/DISABLE/" $CFG_FILE 
+		# ativando apenas o item desejado			
+		NOVO=$(cat "$CFG_FILE" | grep "$NAME - "| sed "s/DISABLE/ENABLE/" )
+		cat "$CFG_FILE" | grep -v "$NAME - " > temp
+		cat "temp" > "$CFG_FILE"
+		echo "$NOVO" >> "$CFG_FILE"
+		echo "$ENTIDADE \"$NAME\" ativada com sucesso."	
+		listAll		
+	fi
+}
+
+
+function disable()
+{
+	NAME="$1"
+	NEW_NAME="$2"
+	EXISTE=""
+	EXISTE=$(consulte "$NAME" "$CFG_FILE")
+	if [ "$EXISTE" -eq 0 ];then
+		echo "$ENTIDADE $NAME não localizado."
+	else 
+		#Desativando todos
+		sed -i "s/ENABLE/DISABLE/" $CFG_FILE 
+		# ativando apenas o item desejado			
+		NOVO=$(cat "$CFG_FILE" | grep "$NAME - "| sed "s/ENABLE/DISABLE/" )
+		cat "$CFG_FILE" | grep -v "$NAME - " > temp
+		cat "temp" > "$CFG_FILE"
+		echo "$NOVO" >> "$CFG_FILE"
+		echo "$ENTIDADE \"$NAME\" desativada com sucesso."	
+		listAll		
+	fi
+}
+
+function save()
+{
+	echo "You are about to save the Defined zoning Configuration. This action will only save the changes on Defined configuration."  
+	echo "Any changes made on Effective configuration will not take affect until it is re-enabled."
+	echo "Do you want to save Defined zoning configuration only? (yes, y, no, n): [no] "
+	read -p " " RESP
+	
+	RESP=$(echo "${RESP:-"N"}")
+	RESP=$(echo $RESP| tr [a-z] [A-Z])
+		
+	case $RESP in 	
+		Y|YES)	
+	##		sed -i "s/committed 	- Access/committed 	- No Access/" $DEFZONE_FILE 
+			echo "$ENTIDADE update sucessfuly."	
+			listAll
+			;;
+		N|NO)
+			echo "Aborted"
+			;;
+		*)
+			echo
+			echo "Invalid option	select (yes, y, no, n)"
+			echo "Aborted"
+			;;			
+	esac
+}
+
+
+OP=""
+OP=$(echo "chamada- $0"| cut -d"/" -f4)
+#echo "Opção: $OP"  ## DEBUG
+
+case "$OP" in
+	cfgcreate)
+		if [ "$#" -lt 2 ]; then
+			echo "Sintaxe error- $OP <CFG NAME> <\"ZONE_1;ZONE_2\">"
+		else
+			insert "$1" "$2"
+		fi	
+		;;
+	cfgshow)
+		listAll
+		;;
+	
+	cfgdelete)
+		if [ "$#" -lt 1 ]; then
+			echo "Sintaxe error- $OP <CFG NAME>"
+		else
+			delete "$1"
+		fi	
+		;;
+	cfgrename)
+		if [ "$#" -lt 2 ]; then
+			echo "Sintaxe error- $OP <CFG NAME> <NEW CFG NAME>"
+		else
+			rename "$1" "$2"
+		fi	
+		;;
+	cfgcopy)
+		if [ "$#" -lt 2 ]; then
+			echo "Sintaxe error- $OP <CFG NAME> <NEW CFG NAME>"
+		else
+			copy "$1" "$2"
+		fi	
+		;;
+	cfgenable)
+		if [ "$#" -lt 1 ]; then
+			echo "Sintaxe error- $OP <CFG NAME>"
+		else
+			enable "$1" 
+		fi	
+		;;
+	cfgdisable)
+		if [ "$#" -lt 1 ]; then
+			echo "Sintaxe error- $OP <CFG NAME>"
+		else
+			disable "$1" 
+		fi	
+		;;
+	cfgsave)
+		save
+		;;	
+	*)
+		echo "Not implemented!"	
+	;;
+esac
+
