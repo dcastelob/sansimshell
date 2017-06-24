@@ -1,20 +1,37 @@
+1) Zone name server chack
+nsshow ---???? O que esse comando faz???
+
+2) Disable default zone
+defzone --show
+defzone --noaccess
+defzone --show
+
+3) Create alias
 alicreate "Windows_port0", "10:00:ff:05:1e:4b:d5:00"
 alicreate "Linux_port0", "10:00:ff:05:1e:4b:d5:01"
 alicreate "VNX_SPA3", "10:00:ff:05:1e:4b:d5:02"
 
+4)Create zone
 zonecreate "WIN_PO_VNX_SPA3", "Windows_port0;VNX_SPA3"
 zonecreate "Linux_PO_VNX_SPA3", "Linux_port0;VNX_SPA3"
 
 zoneshow
 
+5) Create zone configuration
 cfgshow
 cfgcreate "zoneconfig1", "WIN_PO_VNX_SPA3;Linux_PO_VNX_SPA3"
 
+6) Save zone configuration
 cfgsave
 
+7) Zone enable
 cfgenable zoneconfig1
 cfgshow
+
+8) Zone disable
 cfgdisable
+
+9) Zone clear
 cfgclear
 
 

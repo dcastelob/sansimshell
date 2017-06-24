@@ -18,7 +18,7 @@ function consulte()
 	ITEM="$1"
 	FILE="$2"
 	EXISTE=""
-	EXISTE=$(cat "$FILE" | grep "$ITEM -")
+	EXISTE=$(cat "$FILE" | grep "$ITEM")
 	if [ -z "$EXISTE" ];then
 		echo 0
 	else
@@ -80,7 +80,7 @@ function insert()
 	EXISTE3=$(consulte2 "$ZONE2" "$ZONE_FILE")
 	
 	if [ "$EXISTE1" -eq 0 ] && [ "$EXISTE2" -eq 1 ] && [ "$EXISTE3" -eq 1 ]  ;then
-		echo "$NAME - DISABLE - $ZONE1 - $ZONE2" >> "$DEFZONE_FILE"
+		echo "$NAME|DISABLE|$ZONE1|$ZONE2" >> "$DEFZONE_FILE"
 		echo "$ENTIDADE \"$NAME\" created."
 		listAll "--auto"
 	else
@@ -98,7 +98,7 @@ function delete()
 	if [ "$EXISTE" -eq 0 ];then
 		echo "$ENTIDADE \"$NAME\" not found!"
 	else 
-		cat "$DEFZONE_FILE" | grep -v "$NAME - " > temp
+		cat "$DEFZONE_FILE" | grep -v "^$NAME" > temp
 		cat "temp" > "$DEFZONE_FILE"
 		rm -f temp
 		echo "$ENTIDADE \"$NAME\" deleted."
@@ -119,8 +119,8 @@ function rename()
 		EXISTE=""
 		EXISTE=$(consulte "$NEW_NAME" "$DEFZONE_FILE")
 		if [ "$EXISTE" -eq 0 ];then
-			NOVO=$(cat "$DEFZONE_FILE" | grep "$NAME - "| sed "s/$NAME/$NEW_NAME/" )
-			cat "$DEFZONE_FILE" | grep -v "$NAME - " > temp
+			NOVO=$(cat "$DEFZONE_FILE" | grep "^$NAME"| sed "s/$NAME/$NEW_NAME/" )
+			cat "$DEFZONE_FILE" | grep -v "^$NAME" > temp
 			cat "temp" > "$DEFZONE_FILE"
 			echo "$NOVO" >> "$DEFZONE_FILE"
 			echo "$ENTIDADE \"$NAME\" renamed for \"$NEW_NAME\"."
@@ -147,7 +147,7 @@ function copy()
 		EXISTE=""
 		EXISTE=$(consulte "$NEW_NAME" "$DEFZONE_FILE")
 		if [ "$EXISTE" -eq 0 ];then
-			NOVO=$(cat "$DEFZONE_FILE" | grep "$NAME - "| sed "s/$NAME/$NEW_NAME/" )
+			NOVO=$(cat "$DEFZONE_FILE" | grep "^$NAME"| sed "s/$NAME/$NEW_NAME/" )
 
 			echo "$NOVO" >> "$DEFZONE_FILE"
 			echo "$ENTIDADE \"$NAME\" copy \"$NEW_NAME\"."
@@ -171,8 +171,8 @@ function enable()
 		#Desativando todos
 		sed -i "s/ENABLE/DISABLE/" $DEFZONE_FILE 
 		# ativando apenas o item desejado			
-		NOVO=$(cat "$DEFZONE_FILE" | grep "$NAME - "| sed "s/DISABLE/ENABLE/" )
-		cat "$DEFZONE_FILE" | grep -v "$NAME - " > temp
+		NOVO=$(cat "$DEFZONE_FILE" | grep "^$NAME"| sed "s/DISABLE/ENABLE/" )
+		cat "$DEFZONE_FILE" | grep -v "^$NAME" > temp
 		cat "temp" > "$DEFZONE_FILE"
 		echo "$NOVO" >> "$DEFZONE_FILE"
 		echo "$ENTIDADE \"$NAME\" enabled."	
@@ -250,8 +250,8 @@ function disable()
 		#Desativando todos
 		sed -i "s/ENABLE/DISABLE/" $DEFZONE_FILE 
 		# ativando apenas o item desejado			
-		NOVO=$(cat "$DEFZONE_FILE" | grep "$NAME - "| sed "s/ENABLE/DISABLE/" )
-		cat "$DEFZONE_FILE" | grep -v "$NAME - " > temp
+		NOVO=$(cat "$DEFZONE_FILE" | grep "^$NAME"| sed "s/ENABLE/DISABLE/" )
+		cat "$DEFZONE_FILE" | grep -v "^$NAME" > temp
 		cat "temp" > "$DEFZONE_FILE"
 		echo "$NOVO" >> "$DEFZONE_FILE"
 		echo "$ENTIDADE \"$NAME\" desativada com sucesso."	

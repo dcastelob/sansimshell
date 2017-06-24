@@ -18,7 +18,7 @@ function consulte()
 	ITEM="$1"
 	FILE="$2"
 	EXISTE=""
-	EXISTE=$(cat "$FILE" | grep "$ITEM -")
+	EXISTE=$(cat "$FILE" | grep "^$ITEM")
 	if [ -z "$EXISTE" ];then
 		echo 0
 	else
@@ -63,7 +63,7 @@ function listAll()
 #	echo "============================================================================="
 	DADOS=$(cat "$ALIAS_FILE")
 	if [ -n "$DADOS" ];then
-		cat "$ALIAS_FILE" | sed 's/-/\t-\t/g'
+		cat "$ALIAS_FILE" | sed 's/|/\t|\t/g'
 	else
 		echo "Data not found!"	
 	fi
@@ -83,11 +83,11 @@ function insert()
 	EXISTE2=$(consulte2 "$WWPN" "$PORTS_FILE")
 	
 	if [ "$EXISTE1" -eq 0 ] && [ "$EXISTE2" -eq 1 ] ;then
-		echo "$ALIAS_NAME - $WWPN" >> "$ALIAS_FILE"
-		echo "Alias \"$ALIAS_NAME\" created."
+		echo "$ALIAS_NAME|$WWPN" >> "$ALIAS_FILE"
+		echo "$ENTIDADE \"$ALIAS_NAME\" created."
 		listAll "--auto"
 	else
-		echo "Could not create Alias. Check the <Alias Name> or <Port> informed"
+		echo "Could not create $ENTIDADE. Check the <$ENTIDADE Name> or <Port> informed"
 		#echo "Alias $ALIAS_NAME já existe."	
 	fi
 }
@@ -99,12 +99,12 @@ function delete()
 	EXISTE=""
 	EXISTE=$(consulte "$ALIAS_NAME" "$ALIAS_FILE")
 	if [ "$EXISTE" -eq 0 ];then
-		echo "Alias \"$ALIAS_NAME\" not found!"
+		echo "$ENTIDADE \"$ALIAS_NAME\" not found!"
 	else 
-		cat "$ALIAS_FILE" | grep -v "$ALIAS_NAME - " > temp
+		cat "$ALIAS_FILE" | grep -v "$ALIAS_NAME" > temp
 		cat "temp" > "$ALIAS_FILE"
 		rm -f temp
-		echo "Alias \"$ALIAS_NAME\" has deleted."
+		echo "$ENTIDADE \"$ALIAS_NAME\" has deleted."
 		listAll "--auto"
 	fi
 }
@@ -117,18 +117,19 @@ function rename()
 	EXISTE=""
 	EXISTE=$(consulte "$ALIAS_NAME" "$ALIAS_FILE")
 	if [ "$EXISTE" -eq 0 ];then
-		echo "Alias \"$ALIAS_NAME\" not found!"
+		echo "$ENTIDADE \"$ALIAS_NAME\" not found!"
 	else 
 		EXISTE=""
 		EXISTE=$(consulte "$NEW_ALIAS_NAME" "$ALIAS_FILE")
 		if [ "$EXISTE" -eq 0 ];then
-			NOVO=$(cat "$ALIAS_FILE" | grep "$ALIAS_NAME - "| sed "s/$ALIAS_NAME/$NEW_ALIAS_NAME/" )
-			cat "$ALIAS_FILE" | grep -v "$ALIAS_NAME - " > temp
+			NOVO=$(cat "$ALIAS_FILE" | grep "^$ALIAS_NAME"| sed "s/$ALIAS_NAME/$NEW_ALIAS_NAME/" )
+			cat "$ALIAS_FILE" | grep -v "^$ALIAS_NAME" > temp
 			cat "temp" > "$ALIAS_FILE"
 			echo "$NOVO" >> "$ALIAS_FILE"
 			listAll "--auto"
+			echo "$ENTIDADE \"$ALIAS_NAME\" has renamed to \"$NEW_ALIAS_NAME\"."
 		else 
-			echo "Alias \"$NEW_ALIAS_NAME\" already exists."
+			echo "$ENTIDADE \"$NEW_ALIAS_NAME\" already exists."
 		fi		
 	fi
 }
@@ -141,18 +142,19 @@ function copy()
 	EXISTE=""
 	EXISTE=$(consulte "$ALIAS_NAME" "$ALIAS_FILE")
 	if [ "$EXISTE" -eq 0 ];then
-		echo "Alias \"$ALIAS_NAME\" not found!"
+		echo "$ENTIDADE \"$ALIAS_NAME\" not found!"
 		return 0
 	else 
 		EXISTE=""
 		EXISTE=$(consulte "$NEW_ALIAS_NAME" "$ALIAS_FILE")
 		if [ "$EXISTE" -eq 0 ];then
-			NOVO=$(cat "$ALIAS_FILE" | grep "$ALIAS_NAME - "| sed "s/$ALIAS_NAME/$NEW_ALIAS_NAME/" )
+			NOVO=$(cat "$ALIAS_FILE" | grep "^$ALIAS_NAME"| sed "s/$ALIAS_NAME/$NEW_ALIAS_NAME/" )
 
 			echo "$NOVO" >> "$ALIAS_FILE"
+			echo "$ENTIDADE \"$ALIAS_NAME\" has copied to \"$NEW_ALIAS_NAME\"."
 			listAll "--auto"
 		else 
-			echo "Alias \"$NEW_ALIAS_NAME\" already exists."
+			echo "$ENTIDADE \"$NEW_ALIAS_NAME\" already exists."
 		fi
 		
 	fi

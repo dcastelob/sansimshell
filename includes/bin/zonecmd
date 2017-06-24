@@ -18,7 +18,7 @@ function consulte()
 	ITEM="$1"
 	FILE="$2"
 	EXISTE=""
-	EXISTE=$(cat "$FILE" | grep "$ITEM -")
+	EXISTE=$(cat "$FILE" | grep "^$ITEM")
 	if [ -z "$EXISTE" ];then
 		echo 0
 	else
@@ -60,7 +60,7 @@ function listAll()
 	
 	DADOS=$(cat "$ZONE_FILE")
 	if [ -n "$DADOS" ];then
-		cat "$ZONE_FILE" | sed 's/-/\t-\t/g'
+		cat "$ZONE_FILE" | sed 's/|/\t|\t/g'
 	else
 		echo "Data not found!"	
 	fi
@@ -85,11 +85,11 @@ function insert()
 	EXISTE3=$(consulte2 "$ALIAS2" "$ALIAS_FILE")
 	
 	if [ "$EXISTE1" -eq 0 ] && [ "$EXISTE2" -eq 1 ] && [ "$EXISTE3" -eq 1 ]  ;then
-		echo "$NAME - $ALIAS1 - $ALIAS2" >> "$ZONE_FILE"
+		echo "$NAME|$ALIAS1|$ALIAS2" >> "$ZONE_FILE"
 		echo "$ENTIDADE \"$NAME\" created."
 		listAll "--auto"
 	else
-		echo "Could not create $ENTIDADE. Check the <Zone Name> or <Alias names> reported"
+		echo "Could not create $ENTIDADE. Check the <$ENTIDADE. Name> or <Alias names> reported"
 
 	fi
 }
@@ -104,7 +104,7 @@ function delete()
 	if [ "$EXISTE" -eq 0 ];then
 		echo "$ENTIDADE \"$NAME\" not found!"
 	else 
-		cat "$ZONE_FILE" | grep -v "$NAME - " > temp
+		cat "$ZONE_FILE" | grep -v "^$NAME" > temp
 		cat "temp" > "$ZONE_FILE"
 		rm -f temp
 		echo "$ENTIDADE \"$NAME\" deleted."
@@ -125,8 +125,8 @@ function rename()
 		EXISTE=""
 		EXISTE=$(consulte "$NEW_NAME" "$ZONE_FILE")
 		if [ "$EXISTE" -eq 0 ];then
-			NOVO=$(cat "$ZONE_FILE" | grep "$NAME - "| sed "s/$NAME/$NEW_NAME/" )
-			cat "$ZONE_FILE" | grep -v "$NAME - " > temp
+			NOVO=$(cat "$ZONE_FILE" | grep "^$NAME"| sed "s/$NAME/$NEW_NAME/" )
+			cat "$ZONE_FILE" | grep -v "^$NAME" > temp
 			cat "temp" > "$ZONE_FILE"
 			echo "$NOVO" >> "$ZONE_FILE"
 			echo "$ENTIDADE \"$NAME\" renamed for \"$NEW_NAME\"."
@@ -153,10 +153,9 @@ function copy()
 		EXISTE=""
 		EXISTE=$(consulte "$NEW_NAME" "$ZONE_FILE")
 		if [ "$EXISTE" -eq 0 ];then
-			NOVO=$(cat "$ZONE_FILE" | grep "$NAME - "| sed "s/$NAME/$NEW_NAME/" )
-
+			NOVO=$(cat "$ZONE_FILE" | grep "^$NAME"| sed "s/$NAME/$NEW_NAME/" )
 			echo "$NOVO" >> "$ZONE_FILE"
-			echo "$ENTIDADE \"$NAME\" copiada para \"$NEW_NAME\" com sucesso."
+			echo "$ENTIDADE \"$NAME\" copied for \"$NEW_NAME\"."
 			listAll "--auto"
 		else 
 			echo "$ENTIDADE \"$NEW_NAME\" already exists."

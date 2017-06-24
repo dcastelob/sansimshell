@@ -18,7 +18,7 @@ function consulte()
 	ITEM="$1"
 	FILE="$2"
 	EXISTE=""
-	EXISTE=$(cat "$FILE" | grep "$ITEM -")
+	EXISTE=$(cat "$FILE" | grep "^$ITEM")
 	if [ -z "$EXISTE" ];then
 		echo 0
 	else
@@ -75,37 +75,38 @@ function listAll()
 	IFS=$'\n'
 	# Listando as zones
 	for ITEM in $CONF_LIST;do
-		CONF=$(echo "$ITEM" | awk -F"-" '{print $1}')
-		STATUS=$(echo "$ITEM" | awk -F"-" '{print $2}')
+		CONF=$(echo "$ITEM" | awk -F"|" '{print $1}')
+		STATUS=$(echo "$ITEM" | awk -F"|" '{print $2}')
 		STATUS=$(echo "$STATUS"| sed 's/ //g' )
-		ZONE[1]=$(echo "$ITEM" | awk -F"-" '{print $3}')
-		ZONE[2]=$(echo "$ITEM" | awk -F"-" '{print $4}')
+		ZONE[1]=$(echo "$ITEM" | awk -F"|" '{print $3}')
+		ZONE[2]=$(echo "$ITEM" | awk -F"|" '{print $4}')
 		
-		for Y in $(seq 1 2);do
-			ZONE[$Y]=$(echo $ZONE[$Y] | sed "s/ //g")
-		done
+		#for Y in $(seq 1 2);do
+		#	ZONE[$Y]=$(echo $ZONE[$Y] | sed "s/ //g")
+		#done
 		
 		echo -e " cfg:\t${CONF}"
 		echo -e "\t\t ${ZONE[1]};${ZONE[2]}" 
 		
 		#Para cada zone listar os alias
 		for I in $(seq 1 2);do
-			echo -e " zone:\t%${ZONE[$I]}%"
-			ZONE_LIST=$(cat "$ZONE_FILE" | grep "$ZONE[$I]")
-			echo "ZONE_LIST: $ZONE_LIST" 	#debug
+			echo -e " zone:\t${ZONE[$I]}"
+			ZONE_LIST=$(cat "$ZONE_FILE" | grep "${ZONE[$I]}")
+			# echo "cat $ZONE_FILE | grep ${ZONE[$I]}"  #DEBUG
+			#echo "ZONE_LIST: $ZONE_LIST" 	#DEBUG
 			for ITEM2 in $ZONE_LIST; do
-				ALIAS[1]=$(echo "$ITEM2" | awk -F"-" '{print $2}')
-				ALIAS[2]=$(echo "$ITEM2" | awk -F"-" '{print $3}')
+				ALIAS[1]=$(echo "$ITEM2" | awk -F"|" '{print $2}')
+				ALIAS[2]=$(echo "$ITEM2" | awk -F"|" '{print $3}')
 			done
 			echo -e "\t\t ${ALIAS[1]};${ALIAS[2]}" 	
 			
 			# Para cada Alias listar o device
 			for I in $(seq 1 2);do
 				echo -e " alias:\t${ALIAS[$I]}"
-				ALIAS_LIST=$(cat "$ALIAS_FILE" | grep "$ALIAS[$I]")
+				ALIAS_LIST=$(cat "$ALIAS_FILE" | grep "${ALIAS[$I]}")
 			
 				for ITEM3 in $ALIAS_LIST;do
-					PORT[1]=$(echo "$ITEM3" | awk -F"-" '{print $2}')
+					PORT[1]=$(echo "$ITEM3" | awk -F"|" '{print $2}')
 				done
 				echo -e "\t\t ${PORT[1]}" 	
 			done
@@ -122,10 +123,10 @@ function listAll()
 		;;
 	"ENABLE")
 		for ITEM in $CONF_LIST;do
-			CONF=$(echo "$ITEM" | awk -F"-" '{print $1}')
-			STATUS=$(echo "$ITEM" | awk -F"-" '{print $2}')
-			ZONE[1]=$(echo "$ITEM" | awk -F"-" '{print $3}')
-			ZONE[2]=$(echo "$ITEM" | awk -F"-" '{print $4}')
+			CONF=$(echo "$ITEM" | awk -F"|" '{print $1}')
+			STATUS=$(echo "$ITEM" | awk -F"|" '{print $2}')
+			ZONE[1]=$(echo "$ITEM" | awk -F"|" '{print $3}')
+			ZONE[2]=$(echo "$ITEM" | awk -F"|" '{print $4}')
 		
 			echo -e " cfg:\t${CONF}"
 			echo -e "\t\t ${ZONE[1]};${ZONE[2]}" 
@@ -136,8 +137,8 @@ function listAll()
 				ZONE_LIST=$(cat "$ZONE_FILE" | grep "$ZONE[$I]")
 				#echo "ZONE_LIST: $ZONE_LIST" 	#debug
 				for ITEM2 in $ZONE_LIST;do
-					ALIAS[1]=$(echo "$ITEM2" | awk -F"-" '{print $2}')
-					ALIAS[2]=$(echo "$ITEM2" | awk -F"-" '{print $3}')
+					ALIAS[1]=$(echo "$ITEM2" | awk -F"|" '{print $2}')
+					ALIAS[2]=$(echo "$ITEM2" | awk -F"|" '{print $3}')
 				done
 				#echo -e "\t\t ${ALIAS[1]};${ALIAS[2]}" 	
 			
@@ -147,7 +148,7 @@ function listAll()
 					ALIAS_LIST=$(cat "$ALIAS_FILE" | grep "$ALIAS[$I]")
 			
 					for ITEM3 in $ALIAS_LIST;do
-						PORT[1]=$(echo "$ITEM3" | awk -F"-" '{print $2}')
+						PORT[1]=$(echo "$ITEM3" | awk -F"|" '{print $2}')
 					done
 					echo -e "\t\t ${PORT[1]}" 	
 				done
@@ -176,11 +177,11 @@ function insert()
 	EXISTE3=$(consulte2 "$ZONE2" "$ZONE_FILE")
 	
 	if [ "$EXISTE1" -eq 0 ] && [ "$EXISTE2" -eq 1 ] && [ "$EXISTE3" -eq 1 ]  ;then
-		echo "$NAME - PROJECT - $ZONE1 - $ZONE2" >> "$CFG_FILE"
+		echo "$NAME|PROJECT|$ZONE1|$ZONE2" >> "$CFG_FILE"
 		echo "$ENTIDADE \"$NAME\" created."
 		listAll "--auto"
 	else
-		echo "Could not create $ENTIDADE. Check the <Cfg name> or <Zone Names> informed"
+		echo "Could not create $ENTIDADE. Check the <$ENTIDADE name> or <Zone Names> informed"
 		#echo "Alias $ALIAS_NAME already exists."	
 	fi
 }
@@ -194,7 +195,7 @@ function delete()
 	if [ "$EXISTE" -eq 0 ];then
 		echo "$ENTIDADE \"$NAME\" not found!"
 	else 
-		cat "$CFG_FILE" | grep -v "$NAME - " > temp
+		cat "$CFG_FILE" | grep -v "^$NAME" > temp
 		cat "temp" > "$CFG_FILE"
 		rm -f temp
 		echo "$ENTIDADE \"$NAME\" removed."
@@ -215,11 +216,11 @@ function rename()
 		EXISTE=""
 		EXISTE=$(consulte "$NEW_NAME" "$CFG_FILE")
 		if [ "$EXISTE" -eq 0 ];then
-			NOVO=$(cat "$CFG_FILE" | grep "$NAME - "| sed "s/$NAME/$NEW_NAME/" )
-			cat "$CFG_FILE" | grep -v "$NAME - " > temp
+			NOVO=$(cat "$CFG_FILE" | grep "^$NAME"| sed "s/$NAME/$NEW_NAME/" )
+			cat "$CFG_FILE" | grep -v "^$NAME" > temp
 			cat "temp" > "$CFG_FILE"
 			echo "$NOVO" >> "$CFG_FILE"
-			echo "$ENTIDADE \"$NAME\" renamed for \"$NEW_NAME\" sucessfuly."
+			echo "$ENTIDADE \"$NAME\" renamed for \"$NEW_NAME\"."
 			listAll "--auto"
 		else 
 			echo "$ENTIDADE \"$NEW_NAME\" already exists."
@@ -243,10 +244,9 @@ function copy()
 		EXISTE=""
 		EXISTE=$(consulte "$NEW_NAME" "$CFG_FILE")
 		if [ "$EXISTE" -eq 0 ];then
-			NOVO=$(cat "$CFG_FILE" | grep "$NAME - "| sed "s/$NAME/$NEW_NAME/" )
-
+			NOVO=$(cat "$CFG_FILE" | grep "^$NAME"| sed "s/$NAME/$NEW_NAME/" )
 			echo "$NOVO" >> "$CFG_FILE"
-			echo "$ENTIDADE \"$NAME\" copy for \"$NEW_NAME\" sucessfuly."
+			echo "$ENTIDADE \"$NAME\" copied for \"$NEW_NAME\"."
 			listAll "--auto"
 		else 
 			echo "$ENTIDADE \"$NEW_NAME\" already exists."
@@ -261,7 +261,7 @@ function enable()
 	EXISTE=""
 	EXISTE=$(consulte "$NAME" "$CFG_FILE")
 	if [ "$EXISTE" -eq 0 ];then
-		echo "$ENTIDADE $NAME not found!"
+		echo "$ENTIDADE \"$NAME\" not found!"
 		return 1
 	fi
 	
@@ -278,8 +278,8 @@ function enable()
 			sed -i "s/ENABLE/DISABLE/" $CFG_FILE
 			sed -i "s/PROJECT/DISABLE/" $CFG_FILE  
 			# ativando apenas o item desejado			
-			NOVO=$(cat "$CFG_FILE" | grep "$NAME - "| sed "s/DISABLE/ENABLE/" )
-			cat "$CFG_FILE" | grep -v "$NAME - " > temp
+			NOVO=$(cat "$CFG_FILE" | grep "^$NAME"| sed "s/DISABLE/ENABLE/" )
+			cat "$CFG_FILE" | grep -v "^$NAME" > temp
 			cat "temp" > "$CFG_FILE"
 			echo "$NOVO" >> "$CFG_FILE"
 			echo "zone config \"$NAME\" is in effect"
@@ -304,14 +304,6 @@ function enable()
 function disable()
 {
 	
-	#NAME="$1"
-	#EXISTE=""
-	#EXISTE=$(consulte "$NAME" "$CFG_FILE")
-	#if [ "$EXISTE" -eq 0 ];then
-	#	echo "$ENTIDADE $NAME não localizado."
-	#	return 1
-	#fi
-	
 	echo "You are about to disable zonning configuration. This action will disable any previous zoning configuration enabled."  
 	echo "Do you want to disable zoning configuration? (yes, y, no, n): [no] "
 	read -p " " RESP
@@ -324,8 +316,8 @@ function disable()
 			#Desativando todos
 			sed -i "s/ENABLE/PROJECT/" $CFG_FILE 
 			# ativando apenas o item desejado			
-			NOVO=$(cat "$CFG_FILE" | grep "$NAME - "| sed "s/ENABLE/DISABLE/" )
-			cat "$CFG_FILE" | grep -v "$NAME - " > temp
+			NOVO=$(cat "$CFG_FILE" | grep "^$NAME"| sed "s/ENABLE/DISABLE/" )
+			cat "$CFG_FILE" | grep -v "^$NAME" > temp
 			cat "temp" > "$CFG_FILE"
 			echo "$NOVO" >> "$CFG_FILE"
 		
