@@ -17,6 +17,7 @@ ln -s cfgcmd cfgenable
 ln -s cfgcmd cfgrename
 ln -s cfgcmd cfgshow
 ln -s cfgcmd cfgsave
+ln -s cfgcmd cfgclear
 
 ln -s zonecmd zonecopy
 ln -s zonecmd zonecreate
@@ -25,3 +26,5 @@ ln -s zonecmd zonerename
 ln -s zonecmd zoneshow
 
 ln -s defzonecmd defzone
+
+ln -s switchcmd switchshow

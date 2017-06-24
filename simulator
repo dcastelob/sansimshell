@@ -10,8 +10,8 @@ for TENTATIVAS in $(seq 1 $LOGINTRY);do
 	read -p "$USERPROMPT" MYUSER
 	read -s -p "$PASSPROMPT" MYPASS
 	if [ "$USER" == "$MYUSER" ] && [ "$PASS" == "$MYPASS" ] ;then	
-		echo -e "\n$WELLCOME_MSG $MYUSER"
-		echo "-------------------------------------------------------------"
+		echo -e "\n$WELCOME_MSG"
+		echo "--------------------------------------------------------------------------------"
 		sleep 1s
 		SUCESSO=1
 		break
@@ -24,14 +24,19 @@ if [ "$SUCESSO" -ne 1 ];then
 	exit	
 fi
 
-echo "Para consultar os comandos disponiveis digite: help"
+echo "$HELP_MSG"
 PATH=$(pwd)/include
 while [ true ]; do
 	echo
 	read -p "$SWITCHNAME:$MYUSER> " CMD
 	
+	CMD=$(echo $CMD | /bin/sed "s/,//g") 
 	case $CMD in
-	"exit"|quit)
+	"exit"|"quit")
+		echo "logout"
+		/bin/sleep 1s
+		echo -e "\n\nConnection to host lost."
+	
 		exit 0	
 		;;
 	*)	

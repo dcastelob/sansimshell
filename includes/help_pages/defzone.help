@@ -1,12 +1,12 @@
 ---------------------------------------------------------------------
-* DEFZONE COMMANDS *
+ .: COMMAND CATEGORY: DEFZONE :.
 ---------------------------------------------------------------------
 defzone	--show	 	: List zone definitions
-				 	: defzone	--show
+			: defzone --show
 
 defzone	--access 	: Update zone definitions
-					: defzone	--access
+			: defzone --access
 
 defzone	--noaccess	: Update zone definitions
-					: defzone	--noaccess
+			: defzone --noaccess
 

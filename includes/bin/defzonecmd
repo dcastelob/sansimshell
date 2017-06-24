@@ -3,6 +3,8 @@
 
 PATH="/usr/lib64/qt-3.3/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin:/home/dcastelob/.local/bin:/home/dcastelob/bin"
 
+source includes/conf/options.conf
+
 CFG_FILE="includes/var/cfgs.db"
 ZONE_FILE="includes/var/zones.db"
 ALIAS_FILE="includes/var/alias.db"
@@ -39,10 +41,23 @@ function consulte2()
 
 function listAll()
 {
-#	echo "============================================================================="
-#	echo " List - All ${ENTIDADE}s"
-#	echo "============================================================================="	
-#	cat "$DEFZONE_FILE" | sed 's/-/\t-\t/g'
+	# A variavel $AUTO_LIST de controle está presente no arquivo conf/options.conf
+	# controlando exibição automatica após atualizações
+	if [ "$1" == "--auto" ]; then
+		VAR=$(echo "$AUTO_LIST" | tr [a-z] [A-Z])
+		case "$VAR" in
+			Y|YES|S|SIM)
+				continue
+				;;
+			N|NO|NAO|NÃO)
+				return 1
+				;;
+			*)
+				return 2
+				;;
+		esac
+	fi
+
 	cat "$DEFZONE_FILE" 
 	
 }
@@ -66,11 +81,11 @@ function insert()
 	
 	if [ "$EXISTE1" -eq 0 ] && [ "$EXISTE2" -eq 1 ] && [ "$EXISTE3" -eq 1 ]  ;then
 		echo "$NAME - DISABLE - $ZONE1 - $ZONE2" >> "$DEFZONE_FILE"
-		echo "$ENTIDADE \"$NAME\" criado com sucesso."
-		listAll
+		echo "$ENTIDADE \"$NAME\" created."
+		listAll "--auto"
 	else
-		echo "Não foi possivel criar a $ENTIDADE, Verifique o <Zone Name> ou <Alias names> informados"
-		#echo "Alias $ALIAS_NAME já existe."	
+		echo "Could not create $ENTIDADE. Check the <Zone Name> or <Alias names> reported"
+		#echo "Alias $ALIAS_NAME already exists."	
 	fi
 }
 
@@ -81,13 +96,13 @@ function delete()
 	EXISTE=""
 	EXISTE=$(consulte "$NAME" "$DEFZONE_FILE")
 	if [ "$EXISTE" -eq 0 ];then
-		echo "$ENTIDADE \"$NAME\" não localizado."
+		echo "$ENTIDADE \"$NAME\" not found!"
 	else 
 		cat "$DEFZONE_FILE" | grep -v "$NAME - " > temp
 		cat "temp" > "$DEFZONE_FILE"
 		rm -f temp
-		echo "$ENTIDADE \"$NAME\" removido."
-		listAll
+		echo "$ENTIDADE \"$NAME\" deleted."
+		listAll "--auto"
 	fi
 }
 
@@ -99,7 +114,7 @@ function rename()
 	EXISTE=""
 	EXISTE=$(consulte "$NAME" "$DEFZONE_FILE")
 	if [ "$EXISTE" -eq 0 ];then
-		echo "$ENTIDADE $NAME não localizado."
+		echo "$ENTIDADE $NAME not found!"
 	else 
 		EXISTE=""
 		EXISTE=$(consulte "$NEW_NAME" "$DEFZONE_FILE")
@@ -108,10 +123,10 @@ function rename()
 			cat "$DEFZONE_FILE" | grep -v "$NAME - " > temp
 			cat "temp" > "$DEFZONE_FILE"
 			echo "$NOVO" >> "$DEFZONE_FILE"
-			echo "$ENTIDADE \"$NAME\" renomeada para \"$NEW_NAME\" com sucesso."
-			listAll
+			echo "$ENTIDADE \"$NAME\" renamed for \"$NEW_NAME\"."
+			listAll "--auto"
 		else 
-			echo "$ENTIDADE \"$NEW_NAME\" já existe."
+			echo "$ENTIDADE \"$NEW_NAME\" already exists."
 		fi
 		
 		
@@ -126,7 +141,7 @@ function copy()
 	EXISTE=""
 	EXISTE=$(consulte "$NAME" "$DEFZONE_FILE")
 	if [ "$EXISTE" -eq 0 ];then
-		echo "$ENTIDADE $NAME não localizado."
+		echo "$ENTIDADE $NAME not found!"
 		return 0
 	else 
 		EXISTE=""
@@ -135,10 +150,10 @@ function copy()
 			NOVO=$(cat "$DEFZONE_FILE" | grep "$NAME - "| sed "s/$NAME/$NEW_NAME/" )
 
 			echo "$NOVO" >> "$DEFZONE_FILE"
-			echo "$ENTIDADE \"$NAME\" copiada para \"$NEW_NAME\" com sucesso."
-			listAll
+			echo "$ENTIDADE \"$NAME\" copy \"$NEW_NAME\"."
+			listAll "--auto"
 		else 
-			echo "$ENTIDADE \"$NEW_NAME\" já existe."
+			echo "$ENTIDADE \"$NEW_NAME\" already exists."
 		fi
 		
 	fi
@@ -151,7 +166,7 @@ function enable()
 	EXISTE=""
 	EXISTE=$(consulte "$NAME" "$DEFZONE_FILE")
 	if [ "$EXISTE" -eq 0 ];then
-		echo "$ENTIDADE $NAME não localizado."
+		echo "$ENTIDADE $NAME not found."
 	else 
 		#Desativando todos
 		sed -i "s/ENABLE/DISABLE/" $DEFZONE_FILE 
@@ -160,8 +175,8 @@ function enable()
 		cat "$DEFZONE_FILE" | grep -v "$NAME - " > temp
 		cat "temp" > "$DEFZONE_FILE"
 		echo "$NOVO" >> "$DEFZONE_FILE"
-		echo "$ENTIDADE \"$NAME\" ativada com sucesso."	
-		listAll		
+		echo "$ENTIDADE \"$NAME\" enabled."	
+		listAll "--auto"		
 	fi
 }
 
@@ -178,7 +193,7 @@ function noaccess()
 		Y|YES)	
 			sed -i "s/committed 	- Access/committed 	- No Access/" $DEFZONE_FILE 
 			echo "$ENTIDADE update sucessfuly."	
-			listAll
+			listAll "--auto"
 			;;
 		N|NO)
 			echo "Aborted"
@@ -208,14 +223,14 @@ function access()
 		Y|YES)	
 			sed -i "s/committed 	- No Access/committed 	- Access/" $DEFZONE_FILE 
 			echo "$ENTIDADE update sucessfuly."	
-			listAll		
+			listAll "--auto"		
 			;;
 		N|NO)
 			echo "Aborted"
 			;;
 		*)
 			echo
-			echo "Invalid option	select (yes, y, no, n)"
+			echo "Invalid option select (yes, y, no, n)"
 			echo "Aborted"
 			;;			
 	esac
@@ -230,7 +245,7 @@ function disable()
 	EXISTE=""
 	EXISTE=$(consulte "$NAME" "$DEFZONE_FILE")
 	if [ "$EXISTE" -eq 0 ];then
-		echo "$ENTIDADE $NAME não localizado."
+		echo "$ENTIDADE $NAME not found!"
 	else 
 		#Desativando todos
 		sed -i "s/ENABLE/DISABLE/" $DEFZONE_FILE 
@@ -240,7 +255,7 @@ function disable()
 		cat "temp" > "$DEFZONE_FILE"
 		echo "$NOVO" >> "$DEFZONE_FILE"
 		echo "$ENTIDADE \"$NAME\" desativada com sucesso."	
-		listAll		
+		listAll "--auto"		
 	fi
 }
 
@@ -252,7 +267,7 @@ case "$OP" in
 	"defzone")
 		case "$1" in
 		"--show")
-			listAll
+			listAll "$1"
 			;;
 		"--noaccess")
 			noaccess

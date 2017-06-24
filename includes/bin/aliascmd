@@ -3,9 +3,15 @@
 
 PATH="/usr/lib64/qt-3.3/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin:/home/dcastelob/.local/bin:/home/dcastelob/bin"
 
+source includes/conf/options.conf
+
+CFG_FILE="includes/var/cfgs.db"
+ZONE_FILE="includes/var/zones.db"
 ALIAS_FILE="includes/var/alias.db"
 PORTS_FILE="includes/var/ports.db"
+DEFZONE_FILE="includes/var/defzones.db"
 
+ENTIDADE="Alias"
 
 function consulte()
 {
@@ -35,10 +41,32 @@ function consulte2()
 
 function listAll()
 {
-	echo "============================================================================="
-	echo " List - All Alias"
-	echo "============================================================================="
-	cat "$ALIAS_FILE" | sed 's/-/\t-\t/g'
+	# A variavel $AUTO_LIST de controle está presente no arquivo conf/options.conf
+	# controlando exibição automatica após atualizações
+	if [ "$1" == "--auto" ]; then
+		VAR=$(echo "$AUTO_LIST" | tr [a-z] [A-Z])
+		case "$VAR" in
+			Y|YES|S|SIM)
+				continue
+				;;
+			N|NO|NAO|NÃO)
+				return 1
+				;;
+			*)
+				return 2
+				;;
+		esac
+	fi
+	
+#	echo "============================================================================="
+#	echo " List - All $ENTIDADE"
+#	echo "============================================================================="
+	DADOS=$(cat "$ALIAS_FILE")
+	if [ -n "$DADOS" ];then
+		cat "$ALIAS_FILE" | sed 's/-/\t-\t/g'
+	else
+		echo "Data not found!"	
+	fi
 	
 }
 
@@ -56,10 +84,10 @@ function insert()
 	
 	if [ "$EXISTE1" -eq 0 ] && [ "$EXISTE2" -eq 1 ] ;then
 		echo "$ALIAS_NAME - $WWPN" >> "$ALIAS_FILE"
-		echo "Alias $ALIAS_NAME criado com sucesso."
-		listAll
+		echo "Alias \"$ALIAS_NAME\" created."
+		listAll "--auto"
 	else
-		echo "Não foi possivel criar o Alias, Verifique o <Alias Name> ou <Port> informados"
+		echo "Could not create Alias. Check the <Alias Name> or <Port> informed"
 		#echo "Alias $ALIAS_NAME já existe."	
 	fi
 }
@@ -71,13 +99,13 @@ function delete()
 	EXISTE=""
 	EXISTE=$(consulte "$ALIAS_NAME" "$ALIAS_FILE")
 	if [ "$EXISTE" -eq 0 ];then
-		echo "Alias $ALIAS_NAME não localizado."
+		echo "Alias \"$ALIAS_NAME\" not found!"
 	else 
 		cat "$ALIAS_FILE" | grep -v "$ALIAS_NAME - " > temp
 		cat "temp" > "$ALIAS_FILE"
 		rm -f temp
-		echo "Alias $ALIAS_NAME removido."
-		listAll
+		echo "Alias \"$ALIAS_NAME\" has deleted."
+		listAll "--auto"
 	fi
 }
 
@@ -89,7 +117,7 @@ function rename()
 	EXISTE=""
 	EXISTE=$(consulte "$ALIAS_NAME" "$ALIAS_FILE")
 	if [ "$EXISTE" -eq 0 ];then
-		echo "Alias $ALIAS_NAME não localizado."
+		echo "Alias \"$ALIAS_NAME\" not found!"
 	else 
 		EXISTE=""
 		EXISTE=$(consulte "$NEW_ALIAS_NAME" "$ALIAS_FILE")
@@ -98,12 +126,10 @@ function rename()
 			cat "$ALIAS_FILE" | grep -v "$ALIAS_NAME - " > temp
 			cat "temp" > "$ALIAS_FILE"
 			echo "$NOVO" >> "$ALIAS_FILE"
-			listAll
+			listAll "--auto"
 		else 
-			echo "Alias $NEW_ALIAS_NAME já existe."
-		fi
-		
-		
+			echo "Alias \"$NEW_ALIAS_NAME\" already exists."
+		fi		
 	fi
 }
 
@@ -115,7 +141,7 @@ function copy()
 	EXISTE=""
 	EXISTE=$(consulte "$ALIAS_NAME" "$ALIAS_FILE")
 	if [ "$EXISTE" -eq 0 ];then
-		echo "Alias $ALIAS_NAME não localizado."
+		echo "Alias \"$ALIAS_NAME\" not found!"
 		return 0
 	else 
 		EXISTE=""
@@ -124,9 +150,9 @@ function copy()
 			NOVO=$(cat "$ALIAS_FILE" | grep "$ALIAS_NAME - "| sed "s/$ALIAS_NAME/$NEW_ALIAS_NAME/" )
 
 			echo "$NOVO" >> "$ALIAS_FILE"
-			listAll
+			listAll "--auto"
 		else 
-			echo "Alias $NEW_ALIAS_NAME já existe."
+			echo "Alias \"$NEW_ALIAS_NAME\" already exists."
 		fi
 		
 	fi
@@ -138,32 +164,32 @@ OP=$(echo "chamada- $0"| cut -d"/" -f4)
 case "$OP" in
 	alicreate)
 		if [ "$#" -lt 2 ]; then
-			echo "Sintaxe error- $OP <ALIAS NAME> <WWPN>"
+			echo "Sintaxe error: $OP <ALIAS NAME> <WWPN>"
 		else
 			insert "$1" "$2"
 		fi	
 		;;
 	alishow)
-		listAll
+		listAll "$1"
 		;;
 	
 	alidelete)
 		if [ "$#" -lt 1 ]; then
-			echo "Sintaxe error- $OP <ALIAS NAME>"
+			echo "Sintaxe error: $OP <ALIAS NAME>"
 		else
 			delete "$1"
 		fi	
 		;;
 	alirename)
 		if [ "$#" -lt 2 ]; then
-			echo "Sintaxe error- $OP <ALIAS NAME> <NEW ALIAS NAME>"
+			echo "Sintaxe error: $OP <ALIAS NAME> <NEW ALIAS NAME>"
 		else
 			rename "$1" "$2"
 		fi	
 		;;
 	alicopy)
 		if [ "$#" -lt 2 ]; then
-			echo "Sintaxe error- $OP <ALIAS NAME> <NEW ALIAS NAME>"
+			echo "Sintaxe error: $OP <ALIAS NAME> <NEW ALIAS NAME>"
 		else
 			copy "$1" "$2"
 		fi	

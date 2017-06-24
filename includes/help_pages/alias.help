@@ -1,11 +1,11 @@
 ---------------------------------------------------------------------
-* ALIAS COMMANDS *
+ .: COMMAND CATEGORY: ALIAS :.
 ---------------------------------------------------------------------
 alicreate	: Create alias  
 		: alicreate <ALIAS NAME> <WWPN>
 
 alishow		: Lista all alias
-		: alishow
+		: alishow [--auto]
 
 alidelete	: Delete alias
 		: alidelete <ALIAS NAME>

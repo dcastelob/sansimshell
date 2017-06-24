@@ -3,9 +3,13 @@
 
 PATH="/usr/lib64/qt-3.3/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin:/home/dcastelob/.local/bin:/home/dcastelob/bin"
 
+source includes/conf/options.conf
+
+CFG_FILE="includes/var/cfgs.db"
 ZONE_FILE="includes/var/zones.db"
 ALIAS_FILE="includes/var/alias.db"
 PORTS_FILE="includes/var/ports.db"
+DEFZONE_FILE="includes/var/defzones.db"
 
 ENTIDADE="Zone"
 
@@ -37,10 +41,30 @@ function consulte2()
 
 function listAll()
 {
-	echo "============================================================================="
-	echo " List - All ${ENTIDADE}s"
-	echo "============================================================================="
-	cat "$ZONE_FILE" | sed 's/-/\t-\t/g'
+	# A variavel $AUTO_LIST de controle está presente no arquivo conf/options.conf
+	# controlando exibição automatica após atualizações
+	if [ "$1" == "--auto" ]; then
+		VAR=$(echo "$AUTO_LIST" | tr [a-z] [A-Z])
+		case "$VAR" in
+			Y|YES|S|SIM)
+				continue
+				;;
+			N|NO|NAO|NÃO)
+				return 1
+				;;
+			*)
+				return 2
+				;;
+		esac
+	fi
+	
+	DADOS=$(cat "$ZONE_FILE")
+	if [ -n "$DADOS" ];then
+		cat "$ZONE_FILE" | sed 's/-/\t-\t/g'
+	else
+		echo "Data not found!"	
+	fi
+	
 	
 }
 
@@ -62,11 +86,11 @@ function insert()
 	
 	if [ "$EXISTE1" -eq 0 ] && [ "$EXISTE2" -eq 1 ] && [ "$EXISTE3" -eq 1 ]  ;then
 		echo "$NAME - $ALIAS1 - $ALIAS2" >> "$ZONE_FILE"
-		echo "$ENTIDADE $NAME criado com sucesso."
-		listAll
+		echo "$ENTIDADE \"$NAME\" created."
+		listAll "--auto"
 	else
-		echo "Não foi possivel criar a $ENTIDADE, Verifique o <Zone Name> ou <Alias names> informados"
-		#echo "Alias $ALIAS_NAME já existe."	
+		echo "Could not create $ENTIDADE. Check the <Zone Name> or <Alias names> reported"
+
 	fi
 }
 
@@ -78,13 +102,13 @@ function delete()
 	EXISTE=""
 	EXISTE=$(consulte "$NAME" "$ZONE_FILE")
 	if [ "$EXISTE" -eq 0 ];then
-		echo "$ENTIDADE \"$NAME\" não localizado."
+		echo "$ENTIDADE \"$NAME\" not found!"
 	else 
 		cat "$ZONE_FILE" | grep -v "$NAME - " > temp
 		cat "temp" > "$ZONE_FILE"
 		rm -f temp
-		echo "$ENTIDADE \"$NAME\" removido."
-		listAll
+		echo "$ENTIDADE \"$NAME\" deleted."
+		listAll "--auto"
 	fi
 }
 
@@ -96,7 +120,7 @@ function rename()
 	EXISTE=""
 	EXISTE=$(consulte "$NAME" "$ZONE_FILE")
 	if [ "$EXISTE" -eq 0 ];then
-		echo "$ENTIDADE $NAME não localizado."
+		echo "$ENTIDADE \"$NAME\" not found!"
 	else 
 		EXISTE=""
 		EXISTE=$(consulte "$NEW_NAME" "$ZONE_FILE")
@@ -105,10 +129,10 @@ function rename()
 			cat "$ZONE_FILE" | grep -v "$NAME - " > temp
 			cat "temp" > "$ZONE_FILE"
 			echo "$NOVO" >> "$ZONE_FILE"
-			echo "$ENTIDADE \"$NAME\" renomeada para \"$NEW_NAME\" com sucesso."
-			listAll
+			echo "$ENTIDADE \"$NAME\" renamed for \"$NEW_NAME\"."
+			listAll "--auto"
 		else 
-			echo "$ENTIDADE \"$NEW_NAME\" já existe."
+			echo "$ENTIDADE \"$NEW_NAME\" already exists."
 		fi
 		
 		
@@ -123,7 +147,7 @@ function copy()
 	EXISTE=""
 	EXISTE=$(consulte "$NAME" "$ZONE_FILE")
 	if [ "$EXISTE" -eq 0 ];then
-		echo "$ENTIDADE $NAME não localizado."
+		echo "$ENTIDADE \"$NAME\" not found!"
 		return 0
 	else 
 		EXISTE=""
@@ -133,9 +157,9 @@ function copy()
 
 			echo "$NOVO" >> "$ZONE_FILE"
 			echo "$ENTIDADE \"$NAME\" copiada para \"$NEW_NAME\" com sucesso."
-			listAll
+			listAll "--auto"
 		else 
-			echo "$ENTIDADE \"$NEW_NAME\" já existe."
+			echo "$ENTIDADE \"$NEW_NAME\" already exists."
 		fi
 		
 	fi
@@ -150,32 +174,32 @@ OP=$(echo "chamada- $0"| cut -d"/" -f4)
 case "$OP" in
 	zonecreate)
 		if [ "$#" -lt 2 ]; then
-			echo "Sintaxe error- $OP <ZONE NAME> <\"ALIAS_1;ALIAS_2\">"
+			echo "Sintaxe error: $OP <ZONE NAME> <\"ALIAS_1;ALIAS_2\">"
 		else
 			insert "$1" "$2"
 		fi	
 		;;
 	zoneshow)
-		listAll
+		listAll "$1"
 		;;
 	
 	zonedelete)
 		if [ "$#" -lt 1 ]; then
-			echo "Sintaxe error- $OP <ZONE NAME>"
+			echo "Sintaxe error: $OP <ZONE NAME>"
 		else
 			delete "$1"
 		fi	
 		;;
 	zonerename)
 		if [ "$#" -lt 2 ]; then
-			echo "Sintaxe error- $OP <ZONE NAME> <NEW ZONE NAME>"
+			echo "Sintaxe error: $OP <ZONE NAME> <NEW ZONE NAME>"
 		else
 			rename "$1" "$2"
 		fi	
 		;;
 	zonecopy)
 		if [ "$#" -lt 2 ]; then
-			echo "Sintaxe error- $OP <ZONE NAME> <NEW ZONE NAME>"
+			echo "Sintaxe error: $OP <ZONE NAME> <NEW ZONE NAME>"
 		else
 			copy "$1" "$2"
 		fi	

@@ -1,11 +1,11 @@
 ---------------------------------------------------------------------
-* CFG COMMANDS *
+ .: COMMAND CATEGORY: CFG :.
 ---------------------------------------------------------------------
 cfgcreate	: Create cfg  
 		: cfgcreate <"CFG NAME"> <"ZONE_1;ZONE_2">
 
 cfgshow		: Lista all cfgs
-		: cfgshow
+		: cfgshow [--auto]
 
 cfgdelete	: Delete cfg
 		: cfgdelete <CFG NAME>
@@ -20,5 +20,8 @@ cfgenable	: Enable cfg
 		: cfgenable <CFG NAME> 
 
 cfgdisable	: Disable cfg
-		: cfgdisable <CFG NAME>
+		: cfgdisable
+		
+cfgclear	: Clear all configurations
+		: cfgclear		
 

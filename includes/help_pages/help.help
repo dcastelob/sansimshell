@@ -1,7 +1,6 @@
 ---------------------------------------------------------------------
- .: COMMAND CATEGORY: SWITCH :.
+ .: COMMAND CATEGORY: HELP :.
 ---------------------------------------------------------------------
-
-switchshow	: Lista all informations for switch
-		: switchshow [--auto]
+help		: Help for command line
+		: help [CATEGORY]
 

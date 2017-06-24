@@ -1,0 +1,20 @@
+alicreate "Windows_port0", "10:00:ff:05:1e:4b:d5:00"
+alicreate "Linux_port0", "10:00:ff:05:1e:4b:d5:01"
+alicreate "VNX_SPA3", "10:00:ff:05:1e:4b:d5:02"
+
+zonecreate "WIN_PO_VNX_SPA3", "Windows_port0;VNX_SPA3"
+zonecreate "Linux_PO_VNX_SPA3", "Linux_port0;VNX_SPA3"
+
+zoneshow
+
+cfgshow
+cfgcreate "zoneconfig1", "WIN_PO_VNX_SPA3;Linux_PO_VNX_SPA3"
+
+cfgsave
+
+cfgenable zoneconfig1
+cfgshow
+cfgdisable
+cfgclear
+
+

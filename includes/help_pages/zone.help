@@ -1,11 +1,11 @@
 ---------------------------------------------------------------------
-* ZONE COMMANDS *
+ .: COMMAND CATEGORY: ZONE :.
 ---------------------------------------------------------------------
 zonecreate	: Create zone  
 		: zonecreate <"ZONE NAME"> <"ALIAS_1;ALIAS_2">
 
 zoneshow	: Lista all zones
-		: zoneshow
+		: zoneshow [--auto]
 
 zonedelete	: Delete zone
 		: zonedelete <ZONE NAME>

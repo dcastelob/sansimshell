@@ -11,7 +11,7 @@ ALIAS_FILE="includes/var/alias.db"
 PORTS_FILE="includes/var/ports.db"
 DEFZONE_FILE="includes/var/defzones.db"
 
-ENTIDADE="Cfg"
+ENTIDADE="Switch"
 
 function consulte()
 {
@@ -39,17 +39,6 @@ function consulte2()
 	fi
 }
 
-function listAllold()
-{
-#	echo "============================================================================="
-#	echo " List - All ${ENTIDADE}s"
-#	echo "============================================================================="	
-	echo "Defined configuration:"
-	cat "$CFG_FILE" | sed 's/-/\t-\t/g'
-	echo
-	cat "$DEFZONE_FILE" 
-}
-
 function listAll()
 {
 	# A variavel $AUTO_LIST de controle está presente no arquivo conf/options.conf
@@ -69,94 +58,16 @@ function listAll()
 		esac
 	fi
 	
-	echo "Defined configuration:"
-	CONF_LIST=$(cat "$CFG_FILE"| egrep "ENABLE|PROJECT")
-	IFSOLD=$IFS
-	IFS=$'\n'
-	# Listando as zones
-	for ITEM in $CONF_LIST;do
-		CONF=$(echo "$ITEM" | awk -F"-" '{print $1}')
-		STATUS=$(echo "$ITEM" | awk -F"-" '{print $2}')
-		STATUS=$(echo "$STATUS"| sed 's/ //g' )
-		ZONE[1]=$(echo "$ITEM" | awk -F"-" '{print $3}')
-		ZONE[2]=$(echo "$ITEM" | awk -F"-" '{print $4}')
-		
-		for Y in $(seq 1 2);do
-			ZONE[$Y]=$(echo $ZONE[$Y] | sed "s/ //g")
-		done
-		
-		echo -e " cfg:\t${CONF}"
-		echo -e "\t\t ${ZONE[1]};${ZONE[2]}" 
-		
-		#Para cada zone listar os alias
-		for I in $(seq 1 2);do
-			echo -e " zone:\t%${ZONE[$I]}%"
-			ZONE_LIST=$(cat "$ZONE_FILE" | grep "$ZONE[$I]")
-			echo "ZONE_LIST: $ZONE_LIST" 	#debug
-			for ITEM2 in $ZONE_LIST; do
-				ALIAS[1]=$(echo "$ITEM2" | awk -F"-" '{print $2}')
-				ALIAS[2]=$(echo "$ITEM2" | awk -F"-" '{print $3}')
-			done
-			echo -e "\t\t ${ALIAS[1]};${ALIAS[2]}" 	
-			
-			# Para cada Alias listar o device
-			for I in $(seq 1 2);do
-				echo -e " alias:\t${ALIAS[$I]}"
-				ALIAS_LIST=$(cat "$ALIAS_FILE" | grep "$ALIAS[$I]")
-			
-				for ITEM3 in $ALIAS_LIST;do
-					PORT[1]=$(echo "$ITEM3" | awk -F"-" '{print $2}')
-				done
-				echo -e "\t\t ${PORT[1]}" 	
-			done
-			
-		done
-	done
+	#Lista as portas do switch
+	DADOS=$(cat "$PORTS_FILE")
+	if [ -n "$DADOS" ];then
+		cat "$PORTS_FILE" 
+	else
+		echo "Data not found!"	
+	fi
 	
-	echo
-	#echo "STATUS: $STATUS"   # debug
-	echo "Effective configuration:"
-	case "$STATUS" in
-	"PROJECT")
-		echo "No Effective configurateion: (No Access)"
-		;;
-	"ENABLE")
-		for ITEM in $CONF_LIST;do
-			CONF=$(echo "$ITEM" | awk -F"-" '{print $1}')
-			STATUS=$(echo "$ITEM" | awk -F"-" '{print $2}')
-			ZONE[1]=$(echo "$ITEM" | awk -F"-" '{print $3}')
-			ZONE[2]=$(echo "$ITEM" | awk -F"-" '{print $4}')
-		
-			echo -e " cfg:\t${CONF}"
-			echo -e "\t\t ${ZONE[1]};${ZONE[2]}" 
-		
-			#Para cada zone listar os alias
-			for I in $(seq 1 2);do
-				echo -e " zone:\t${ZONE[$I]}"
-				ZONE_LIST=$(cat "$ZONE_FILE" | grep "$ZONE[$I]")
-				#echo "ZONE_LIST: $ZONE_LIST" 	#debug
-				for ITEM2 in $ZONE_LIST;do
-					ALIAS[1]=$(echo "$ITEM2" | awk -F"-" '{print $2}')
-					ALIAS[2]=$(echo "$ITEM2" | awk -F"-" '{print $3}')
-				done
-				#echo -e "\t\t ${ALIAS[1]};${ALIAS[2]}" 	
-			
-				# Para cada Alias listar o device
-				for I in $(seq 1 2);do
-					#echo -e "alias:\t${ALIAS[$I]}"
-					ALIAS_LIST=$(cat "$ALIAS_FILE" | grep "$ALIAS[$I]")
-			
-					for ITEM3 in $ALIAS_LIST;do
-						PORT[1]=$(echo "$ITEM3" | awk -F"-" '{print $2}')
-					done
-					echo -e "\t\t ${PORT[1]}" 	
-				done
-			
-			done
-		done
-		;;	
-	esac
 }
+
 
 
 function insert()
@@ -177,11 +88,10 @@ function insert()
 	
 	if [ "$EXISTE1" -eq 0 ] && [ "$EXISTE2" -eq 1 ] && [ "$EXISTE3" -eq 1 ]  ;then
 		echo "$NAME - PROJECT - $ZONE1 - $ZONE2" >> "$CFG_FILE"
-		echo "$ENTIDADE \"$NAME\" created."
+		echo "$ENTIDADE \"$NAME\" criado com sucesso."
 		listAll "--auto"
 	else
-		echo "Could not create $ENTIDADE. Check the <Cfg name> or <Zone Names> informed"
-		#echo "Alias $ALIAS_NAME already exists."	
+		echo "Could not create $ENTIDADE. Check the <Zone Name> or <Alias names> reported"
 	fi
 }
 
@@ -197,7 +107,7 @@ function delete()
 		cat "$CFG_FILE" | grep -v "$NAME - " > temp
 		cat "temp" > "$CFG_FILE"
 		rm -f temp
-		echo "$ENTIDADE \"$NAME\" removed."
+		echo "$ENTIDADE \"$NAME\" removido."
 		listAll "--auto"
 	fi
 }
@@ -219,7 +129,7 @@ function rename()
 			cat "$CFG_FILE" | grep -v "$NAME - " > temp
 			cat "temp" > "$CFG_FILE"
 			echo "$NOVO" >> "$CFG_FILE"
-			echo "$ENTIDADE \"$NAME\" renamed for \"$NEW_NAME\" sucessfuly."
+			echo "$ENTIDADE \"$NAME\" renamed for \"$NEW_NAME\"."
 			listAll "--auto"
 		else 
 			echo "$ENTIDADE \"$NEW_NAME\" already exists."
@@ -246,7 +156,7 @@ function copy()
 			NOVO=$(cat "$CFG_FILE" | grep "$NAME - "| sed "s/$NAME/$NEW_NAME/" )
 
 			echo "$NOVO" >> "$CFG_FILE"
-			echo "$ENTIDADE \"$NAME\" copy for \"$NEW_NAME\" sucessfuly."
+			echo "$ENTIDADE \"$NAME\" copy for \"$NEW_NAME\"."
 			listAll "--auto"
 		else 
 			echo "$ENTIDADE \"$NEW_NAME\" already exists."
@@ -303,14 +213,6 @@ function enable()
 
 function disable()
 {
-	
-	#NAME="$1"
-	#EXISTE=""
-	#EXISTE=$(consulte "$NAME" "$CFG_FILE")
-	#if [ "$EXISTE" -eq 0 ];then
-	#	echo "$ENTIDADE $NAME não localizado."
-	#	return 1
-	#fi
 	
 	echo "You are about to disable zonning configuration. This action will disable any previous zoning configuration enabled."  
 	echo "Do you want to disable zoning configuration? (yes, y, no, n): [no] "
@@ -379,98 +281,57 @@ function save()
 	sleep 1s
 }
 
-function clearfuncion()
-{
-	echo "The Clear All action will clear all Aliases, Zones, FA Zones an configurations in the Defined configurations."  
-	echo "cfgSave may be run to close the transaction or cfgTransAbort may be run to cancel the transaction."
-	echo "Do you really want to clear all configurations? (yes, y, no, n): [no] "
-	read -p " " RESP
-	
-	RESP=$(echo "${RESP:-"N"}")
-	RESP=$(echo $RESP| tr [a-z] [A-Z])
-		
-	case $RESP in 	
-		Y|YES)	
-			## Limpando todas as configurações
-			echo > $CFG_FILE
-			echo > $ZONE_FILE
-			echo > $ALIAS_FILE
-			echo > $DEFZONE_FILE
-			
-			echo "System clear!"	
-			listAll "--auto"
-			;;
-		N|NO)
-			echo "Aborted"
-			return 1
-			;;
-		*)
-			echo
-			echo "Invalid option select (yes, y, no, n)"
-			echo "Aborted"
-			return 2
-			;;			
-	esac
-	echo "Update flash ..."
-	sleep 1s
-}
-
-
 
 OP=""
 OP=$(echo "chamada- $0"| cut -d"/" -f4)
 #echo "Opção: $OP"  ## DEBUG
 
 case "$OP" in
-	cfgcreate)
+	switchcreate)
 		if [ "$#" -lt 2 ]; then
 			echo "Sintaxe error: $OP <CFG NAME> <\"ZONE_1;ZONE_2\">"
 		else
 			insert "$1" "$2"
 		fi	
 		;;
-	cfgshow)
+	switchshow)
 		listAll "$1"
 		;;
 	
-	cfgdelete)
+	switchdelete)
 		if [ "$#" -lt 1 ]; then
 			echo "Sintaxe error: $OP <CFG NAME>"
 		else
 			delete "$1"
 		fi	
 		;;
-	cfgrename)
+	switchrename)
 		if [ "$#" -lt 2 ]; then
 			echo "Sintaxe error: $OP <CFG NAME> <NEW CFG NAME>"
 		else
 			rename "$1" "$2"
 		fi	
 		;;
-	cfgcopy)
+	switchcopy)
 		if [ "$#" -lt 2 ]; then
 			echo "Sintaxe error: $OP <CFG NAME> <NEW CFG NAME>"
 		else
 			copy "$1" "$2"
 		fi	
 		;;
-	cfgenable)
+	switchenable)
 		if [ "$#" -lt 1 ]; then
 			echo "Sintaxe error: $OP <CFG NAME>"
 		else
 			enable "$1" 
 		fi	
 		;;
-	cfgdisable)
+	switchdisable)
 		disable
-
 		;;
-	cfgsave)
+	switchsave)
 		save
-		;;
-	cfgclear)
-		clearfuncion
-		;;			
+		;;	
 	*)
 		echo "Not implemented!"	
 	;;
