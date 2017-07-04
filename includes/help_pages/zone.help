@@ -2,7 +2,7 @@
  .: COMMAND CATEGORY: ZONE :.
 ---------------------------------------------------------------------
 zonecreate	: Create zone  
-		: zonecreate <"ZONE NAME"> <"ALIAS_1;ALIAS_2">
+		: zonecreate <"ZONE NAME"> <"ALIAS_1;ALIAS_2;...">
 
 zoneshow	: Lista all zones
 		: zoneshow [--auto]
@@ -15,5 +15,11 @@ zonerename	: Rename zone
 
 zonecopy	: Copy zone
 		: zonecopy <ZONE NAME> <NEW ZONE NAME>
+
+zoneadd		: Add new alias in zone
+		: zoneadd <"ZONE NAME"> <"ALIAS_1;ALIAS_2;...">
+
+zoneremove	: Remove alias off zone
+		: zoneremove <"ZONE NAME"> <"ALIAS_1;ALIAS_2;...">
 
 

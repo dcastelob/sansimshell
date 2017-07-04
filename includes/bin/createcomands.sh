@@ -21,7 +21,9 @@ ln -s cfgcmd cfgclear
 
 ln -s zonecmd zonecopy
 ln -s zonecmd zonecreate
+ln -s zonecmd zoneadd
 ln -s zonecmd zonedelete
+ln -s zonecmd zoneremove
 ln -s zonecmd zonerename
 ln -s zonecmd zoneshow
 

@@ -11,6 +11,8 @@ ALIAS_FILE="includes/var/alias.db"
 PORTS_FILE="includes/var/ports.db"
 DEFZONE_FILE="includes/var/defzones.db"
 
+PRINCIPAL_FILE="$ZONE_FILE"
+
 ENTIDADE="Zone"
 
 function consulte()
@@ -20,8 +22,10 @@ function consulte()
 	EXISTE=""
 	EXISTE=$(cat "$FILE" | grep "^$ITEM")
 	if [ -z "$EXISTE" ];then
+		#não existe
 		echo 0
 	else
+		#existe
 		echo 1	
 	fi
 }
@@ -37,6 +41,17 @@ function consulte2()
 	else
 		echo 1	
 	fi
+}
+
+function getItem()
+{
+	# função retorna as linhas inteira do registo localizado no arquivo de DB
+	ITEM="$1"
+	FILE="$2"
+	EXISTE=""
+	EXISTE=$(cat "$FILE" | grep "^$ITEM")
+	#echo "cat $FILE | grep ^$ITEM"  #DEBUG
+	echo "$EXISTE"
 }
 
 function listAll()
@@ -58,15 +73,14 @@ function listAll()
 		esac
 	fi
 	
-	DADOS=$(cat "$ZONE_FILE")
+	DADOS=$(cat "$PRINCIPAL_FILE")
 	if [ -n "$DADOS" ];then
-		cat "$ZONE_FILE" | sed 's/|/\t|\t/g'
+		cat "$PRINCIPAL_FILE" | sed 's/|/\t|\t/g'
 	else
 		echo "Data not found!"	
-	fi
-	
-	
+	fi	
 }
+
 
 function insert()
 {
@@ -80,12 +94,12 @@ function insert()
 	EXISTE1=""
 	EXISTE2=""
 	
-	EXISTE1=$(consulte "$NAME" "$ZONE_FILE")
+	EXISTE1=$(consulte "$NAME" "$PRINCIPAL_FILE")
 	EXISTE2=$(consulte2 "$ALIAS1" "$ALIAS_FILE")
 	EXISTE3=$(consulte2 "$ALIAS2" "$ALIAS_FILE")
 	
 	if [ "$EXISTE1" -eq 0 ] && [ "$EXISTE2" -eq 1 ] && [ "$EXISTE3" -eq 1 ]  ;then
-		echo "$NAME|$ALIAS1|$ALIAS2" >> "$ZONE_FILE"
+		echo "$NAME|$ALIAS1|$ALIAS2" >> "$PRINCIPAL_FILE"
 		echo "$ENTIDADE \"$NAME\" created."
 		listAll "--auto"
 	else
@@ -94,22 +108,167 @@ function insert()
 	fi
 }
 
+function insertMultiplos()
+{
+	NAME="$1"
+	ITENS="$2"
+	
+	# Testar se ja existe a entidade, evitar cadastro repetido
+	EXISTE_NAME=""
+	EXISTE_NAME=$(consulte "$NAME" "$PRINCIPAL_FILE")
+	#echo "EXISTE_NAME: $EXISTE_NAME"
+	if [ "$EXISTE_NAME" -eq 1 ];then
+		echo "Could not create $ENTIDADE. Check the $ENTIDADE Name: \"$NAME\" reported"
+		return 1
+	fi
+	
+	#Inlcuindo o nome como o primeiro campo
+	NEW="$NAME"
+	
+	IFSOLD=$IFS
+	IFS=";" 
+	CONT=1
+	for ITEM in $ITENS; do
+		EXISTE_ITEM=""
+		EXISTE_ITEM=$(consulte2 "$ITEM" "$ALIAS_FILE")
+		#echo "1 NEW: $NEW"
+		if [ "$EXISTE_ITEM" -eq 1 ];then
+			NEW="${NEW}|$ITEM"
+			#echo "2 NEW: $NEW"
+		else
+			echo "Could not create $ENTIDADE. Check the Alias name: \"$ITEM\" reported"
+			return 2		
+		fi
+	done
+	
+	IFS=$IFSOLD
+	
+	#Caso não tenha caido em uma exceção ele vai escrever o arquivo no texto
+	echo "$NEW" >> "$PRINCIPAL_FILE"
+	echo "$ENTIDADE \"$NAME\" created."
+	listAll "--auto"
+}
 
+function addnew()
+{
+	NAME="$1"
+	ITENS="$2"
+	
+	# Testar se ja existe a entidade, assim só adicionará subitens se ela existir
+	EXISTE_NAME=""
+	EXISTE_NAME=$(consulte "$NAME" "$PRINCIPAL_FILE")
+	#echo "EXISTE_NAME: $EXISTE_NAME"
+	if [ "$EXISTE_NAME" -eq 0 ];then
+		echo "Could not add itens for $ENTIDADE: \"$NAME\""
+		return 1
+	fi
+	
+	#Inlcuindo o registro inteiro ja existente como o primeiro campo
+	NEW=$(getItem "$NAME" "$PRINCIPAL_FILE")	
+	#echo "NEW: $NEW"  # DEBUG
+	#NEW="$NAME"
+	
+	IFSOLD=$IFS
+	IFS=";" 
+	CONT=1
+	for ITEM in $ITENS; do
+		# Testando se é um subitem válido (ALIAS)
+		EXISTE_ITEM=""
+		EXISTE_ITEM=$(consulte2 "$ITEM" "$ALIAS_FILE")
+		
+		#echo "1 NEW: $NEW"
+		if [ "$EXISTE_ITEM" -eq 1 ];then
+			# Checando se os subitens ja existe cadastrado, evitando duplicações.
+			EXISTE_SUBITEM=""
+			EXISTE_SUBITEM=$(echo "$NEW" | grep $ITEM)
+			echo "EXISTE_SUBITEM: $EXISTE_SUBITEM"
+			if [ -z "$EXISTE_SUBITEM" ];then
+				NEW="${NEW}|$ITEM"
+				#echo "2 NEW: $NEW"
+			else
+				echo "Could not add new item name: \"$ITEM\". Already exists"
+				return 3	
+			fi			
+		else
+			echo "Could not add new item name: \"$ITEM\" not found!"
+			return 2		
+		fi
+	done
+	
+	IFS=$IFSOLD
+	
+	#Caso não tenha caido em uma exceção ele vai escrever o arquivo no texto
+	# Vai remover o registro antigo e vai incluir o novo devidamente alterado
+	cat "$PRINCIPAL_FILE" | grep -v "^$NAME" > temp
+	cat "temp" > "$PRINCIPAL_FILE"
+	rm -f temp
+	echo "$NEW" >> "$PRINCIPAL_FILE"
+	echo "$ENTIDADE \"$NAME\" updated."
+	listAll "--auto"
+}
 
 function delete()
 {
 	NAME="$1"
 	EXISTE=""
-	EXISTE=$(consulte "$NAME" "$ZONE_FILE")
+	EXISTE=$(consulte "$NAME" "$PRINCIPAL_FILE")
 	if [ "$EXISTE" -eq 0 ];then
 		echo "$ENTIDADE \"$NAME\" not found!"
 	else 
-		cat "$ZONE_FILE" | grep -v "^$NAME" > temp
-		cat "temp" > "$ZONE_FILE"
+		cat "$PRINCIPAL_FILE" | grep -v "^$NAME" > temp
+		cat "temp" > "$PRINCIPAL_FILE"
 		rm -f temp
 		echo "$ENTIDADE \"$NAME\" deleted."
 		listAll "--auto"
 	fi
+}
+
+function removeitem()
+{
+	NAME="$1"
+	ITENS="$2"
+	
+	# Testar se ja existe a entidade, assim só adicionará subitens se ela existir
+	EXISTE_NAME=""
+	EXISTE_NAME=$(consulte "$NAME" "$PRINCIPAL_FILE")
+	#echo "EXISTE_NAME: $EXISTE_NAME"
+	if [ "$EXISTE_NAME" -eq 0 ];then
+		echo "Could not remove itens for $ENTIDADE: \"$NAME\""
+		return 1
+	fi
+	
+	#Incluindo o registro inteiro ja existente como o primeiro campo
+	NEW=$(getItem "$NAME" "$PRINCIPAL_FILE")	
+	#echo "NEW: $NEW"  # DEBUG
+	#NEW="$NAME"
+	
+	IFSOLD=$IFS
+	IFS=";" 
+	CONT=1
+	for ITEM in $ITENS; do
+		# Testando se é um subitem válido (ALIAS)
+		EXISTE_ITEM=""
+		EXISTE_ITEM=$(echo "$NEW | grep $ITEM")
+		#echo "1 NEW: $NEW"
+		if [ -n "$EXISTE_ITEM" ];then
+				NEW=$(echo "${NEW}"| sed "s/|$ITEM//g")
+				# echo "2 NEW: $NEW"  	3DEBUG
+		else
+			echo "Could not remove item name: \"$ITEM\" not found!"
+			return 2		
+		fi
+	done
+	
+	IFS=$IFSOLD
+	
+	#Caso não tenha caido em uma exceção ele vai escrever o arquivo no texto
+	# Vai remover o registro antigo e vai incluir o novo
+	cat "$PRINCIPAL_FILE" | grep -v "^$NAME" > temp
+	cat "temp" > "$PRINCIPAL_FILE"
+	rm -f temp
+	echo "$NEW" >> "$PRINCIPAL_FILE"
+	echo "$ENTIDADE \"$NAME\" updated."
+	listAll "--auto"
 }
 
 
@@ -118,24 +277,22 @@ function rename()
 	NAME="$1"
 	NEW_NAME="$2"
 	EXISTE=""
-	EXISTE=$(consulte "$NAME" "$ZONE_FILE")
+	EXISTE=$(consulte "$NAME" "$PRINCIPAL_FILE")
 	if [ "$EXISTE" -eq 0 ];then
 		echo "$ENTIDADE \"$NAME\" not found!"
 	else 
 		EXISTE=""
-		EXISTE=$(consulte "$NEW_NAME" "$ZONE_FILE")
+		EXISTE=$(consulte "$NEW_NAME" "$PRINCIPAL_FILE")
 		if [ "$EXISTE" -eq 0 ];then
-			NOVO=$(cat "$ZONE_FILE" | grep "^$NAME"| sed "s/$NAME/$NEW_NAME/" )
-			cat "$ZONE_FILE" | grep -v "^$NAME" > temp
-			cat "temp" > "$ZONE_FILE"
-			echo "$NOVO" >> "$ZONE_FILE"
+			NOVO=$(cat "$PRINCIPAL_FILE" | grep "^$NAME"| sed "s/$NAME/$NEW_NAME/" )
+			cat "$PRINCIPAL_FILE" | grep -v "^$NAME" > temp
+			cat "temp" > "$PRINCIPAL_FILE"
+			echo "$NOVO" >> "$PRINCIPAL_FILE"
 			echo "$ENTIDADE \"$NAME\" renamed for \"$NEW_NAME\"."
 			listAll "--auto"
 		else 
 			echo "$ENTIDADE \"$NEW_NAME\" already exists."
-		fi
-		
-		
+		fi		
 	fi
 }
 
@@ -145,16 +302,16 @@ function copy()
 	NAME="$1"
 	NEW_NAME="$2"
 	EXISTE=""
-	EXISTE=$(consulte "$NAME" "$ZONE_FILE")
+	EXISTE=$(consulte "$NAME" "$PRINCIPAL_FILE")
 	if [ "$EXISTE" -eq 0 ];then
 		echo "$ENTIDADE \"$NAME\" not found!"
 		return 0
 	else 
 		EXISTE=""
-		EXISTE=$(consulte "$NEW_NAME" "$ZONE_FILE")
+		EXISTE=$(consulte "$NEW_NAME" "$PRINCIPAL_FILE")
 		if [ "$EXISTE" -eq 0 ];then
-			NOVO=$(cat "$ZONE_FILE" | grep "^$NAME"| sed "s/$NAME/$NEW_NAME/" )
-			echo "$NOVO" >> "$ZONE_FILE"
+			NOVO=$(cat "$PRINCIPAL_FILE" | grep "^$NAME"| sed "s/$NAME/$NEW_NAME/" )
+			echo "$NOVO" >> "$PRINCIPAL_FILE"
 			echo "$ENTIDADE \"$NAME\" copied for \"$NEW_NAME\"."
 			listAll "--auto"
 		else 
@@ -173,11 +330,20 @@ OP=$(echo "chamada- $0"| cut -d"/" -f4)
 case "$OP" in
 	zonecreate)
 		if [ "$#" -lt 2 ]; then
-			echo "Sintaxe error: $OP <ZONE NAME> <\"ALIAS_1;ALIAS_2\">"
+			echo "Sintaxe error: $OP <ZONE NAME> <\"ALIAS_1;ALIAS_2;...\">"
 		else
-			insert "$1" "$2"
+			#insert "$1" "$2"
+			insertMultiplos "$1" "$2"
 		fi	
 		;;
+	zoneadd)
+		if [ "$#" -lt 2 ]; then
+			echo "Sintaxe error: $OP <ZONE NAME> <\"ALIAS_1;ALIAS_2;...\">"
+		else
+			addnew "$1" "$2"
+		fi	
+		;;	
+		
 	zoneshow)
 		listAll "$1"
 		;;
@@ -187,6 +353,13 @@ case "$OP" in
 			echo "Sintaxe error: $OP <ZONE NAME>"
 		else
 			delete "$1"
+		fi	
+		;;
+	zoneremove)
+		if [ "$#" -lt 2 ]; then
+			echo "Sintaxe error: $OP <ZONE NAME> <\"ALIAS_1;ALIAS_2;...\">"
+		else
+			removeitem "$1" "$2"
 		fi	
 		;;
 	zonerename)

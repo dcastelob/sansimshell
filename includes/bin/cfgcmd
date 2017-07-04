@@ -11,6 +11,8 @@ ALIAS_FILE="includes/var/alias.db"
 PORTS_FILE="includes/var/ports.db"
 DEFZONE_FILE="includes/var/defzones.db"
 
+PRINCIPAL_FILE="$CFG_FILE"
+
 ENTIDADE="Cfg"
 
 function consulte()
@@ -45,7 +47,7 @@ function listAllold()
 #	echo " List - All ${ENTIDADE}s"
 #	echo "============================================================================="	
 	echo "Defined configuration:"
-	cat "$CFG_FILE" | sed 's/-/\t-\t/g'
+	cat "$PRINCIPAL_FILE" | sed 's/-/\t-\t/g'
 	echo
 	cat "$DEFZONE_FILE" 
 }
@@ -70,45 +72,72 @@ function listAll()
 	fi
 	
 	echo "Defined configuration:"
-	CONF_LIST=$(cat "$CFG_FILE"| egrep "ENABLE|PROJECT")
+	CONF_LIST=$(cat "$PRINCIPAL_FILE"| egrep "ENABLE|PROJECT")
 	IFSOLD=$IFS
 	IFS=$'\n'
 	# Listando as zones
 	for ITEM in $CONF_LIST;do
 		CONF=$(echo "$ITEM" | awk -F"|" '{print $1}')
+		
+		# recuperando todos os itens da configuração sem o "nome" e o "Status"
+		ITENS=$(echo "$ITEM" | cut -d"|" -f3-200)
 		STATUS=$(echo "$ITEM" | awk -F"|" '{print $2}')
 		STATUS=$(echo "$STATUS"| sed 's/ //g' )
-		ZONE[1]=$(echo "$ITEM" | awk -F"|" '{print $3}')
-		ZONE[2]=$(echo "$ITEM" | awk -F"|" '{print $4}')
 		
-		#for Y in $(seq 1 2);do
-		#	ZONE[$Y]=$(echo $ZONE[$Y] | sed "s/ //g")
-		#done
+		IFSOLD=$IFS
+		IFS="|" 
+		CONT=1
+		LIST_ZONES=""
+		#echo "ITENS: $ITENS" 		# DEBUG
+		for ITEM in $ITENS; do
+			#echo "ITEM: $ITEM"  	# DEBUG
+			ZONE[$CONT]="$ITEM"
+			
+			if [ $CONT -eq 1 ]; then
+				#LIST_ZONES="$ITEM"
+				LIST_ZONES="${ZONE[$CONT]}"
+			else
+				#LIST_ZONES="$LIST_ZONES;$ITEM"
+				LIST_ZONES="$LIST_ZONES;${ZONE[$CONT]}"
+			fi
+			CONT=$(($CONT+1))			
+		done
 		
 		echo -e " cfg:\t${CONF}"
-		echo -e "\t\t ${ZONE[1]};${ZONE[2]}" 
+		echo -e "\t\t $LIST_ZONES" 
 		
 		#Para cada zone listar os alias
-		for I in $(seq 1 2);do
-			echo -e " zone:\t${ZONE[$I]}"
-			ZONE_LIST=$(cat "$ZONE_FILE" | grep "${ZONE[$I]}")
-			# echo "cat $ZONE_FILE | grep ${ZONE[$I]}"  #DEBUG
-			#echo "ZONE_LIST: $ZONE_LIST" 	#DEBUG
+		#echo "QTD ZONE: ${#ZONE[*]}"  #DEBUG		
+		QTD_ZONE="${#ZONE[*]}"
+		IFS=";" 
+		for I in $LIST_ZONES;do
+			echo -e " zone:\t $I"
+			ZONE_LIST=$(cat "$ZONE_FILE" | grep "$I" | cut -d "|" -f2-200 )
+			#echo "cat $ZONE_FILE | grep ${ZONE[$I]}"  	#DEBUG
+			#echo "ZONE_LIST: $ZONE_LIST" 				#DEBUG
+			IFS="|" 
+			CONT=1
 			for ITEM2 in $ZONE_LIST; do
-				ALIAS[1]=$(echo "$ITEM2" | awk -F"|" '{print $2}')
-				ALIAS[2]=$(echo "$ITEM2" | awk -F"|" '{print $3}')
+				ALIAS[$CONT]="$ITEM2"
+				if [ $CONT -eq 1 ]; then
+					LIST_ALIAS="$ITEM2"
+				else
+					LIST_ALIAS="$LIST_ALIAS;$ITEM2"
+				fi
+				CONT=$(($CONT+1))			
 			done
-			echo -e "\t\t ${ALIAS[1]};${ALIAS[2]}" 	
-			
+			echo -e "\t\t$LIST_ALIAS" 
+						
 			# Para cada Alias listar o device
-			for I in $(seq 1 2);do
-				echo -e " alias:\t${ALIAS[$I]}"
-				ALIAS_LIST=$(cat "$ALIAS_FILE" | grep "${ALIAS[$I]}")
+			IFS=";" 
+			for I in $LIST_ALIAS;do
+				echo -e "  alias:\t$I"
+				ALIAS_LIST=$(cat "$ALIAS_FILE" | grep "$I")
 			
 				for ITEM3 in $ALIAS_LIST;do
 					PORT[1]=$(echo "$ITEM3" | awk -F"|" '{print $2}')
 				done
-				echo -e "\t\t ${PORT[1]}" 	
+				echo -e "\t\t${PORT[1]}" 	
 			done
 			
 		done
@@ -123,38 +152,70 @@ function listAll()
 		;;
 	"ENABLE")
 		for ITEM in $CONF_LIST;do
-			CONF=$(echo "$ITEM" | awk -F"|" '{print $1}')
-			STATUS=$(echo "$ITEM" | awk -F"|" '{print $2}')
-			ZONE[1]=$(echo "$ITEM" | awk -F"|" '{print $3}')
-			ZONE[2]=$(echo "$ITEM" | awk -F"|" '{print $4}')
+		CONF=$(echo "$ITEM" | awk -F"|" '{print $1}')
 		
-			echo -e " cfg:\t${CONF}"
-			echo -e "\t\t ${ZONE[1]};${ZONE[2]}" 
+		# recuperando todos os itens da configuração sem o "nome" e o "Status"
+		ITENS=$(echo "$ITEM" | cut -d"|" -f3-200)
+		STATUS=$(echo "$ITEM" | awk -F"|" '{print $2}')
+		STATUS=$(echo "$STATUS"| sed 's/ //g' )
 		
-			#Para cada zone listar os alias
-			for I in $(seq 1 2);do
-				echo -e " zone:\t${ZONE[$I]}"
-				ZONE_LIST=$(cat "$ZONE_FILE" | grep "$ZONE[$I]")
-				#echo "ZONE_LIST: $ZONE_LIST" 	#debug
-				for ITEM2 in $ZONE_LIST;do
-					ALIAS[1]=$(echo "$ITEM2" | awk -F"|" '{print $2}')
-					ALIAS[2]=$(echo "$ITEM2" | awk -F"|" '{print $3}')
-				done
-				#echo -e "\t\t ${ALIAS[1]};${ALIAS[2]}" 	
+		IFSOLD=$IFS
+		IFS="|" 
+		CONT=1
+		LIST_ZONES=""
+		for ITEM in $ITENS; do
+			#echo "ITEM: $ITEM"  #DEBUG
+			ZONE[$CONT]="$ITEM"
 			
-				# Para cada Alias listar o device
-				for I in $(seq 1 2);do
-					#echo -e "alias:\t${ALIAS[$I]}"
-					ALIAS_LIST=$(cat "$ALIAS_FILE" | grep "$ALIAS[$I]")
-			
-					for ITEM3 in $ALIAS_LIST;do
-						PORT[1]=$(echo "$ITEM3" | awk -F"|" '{print $2}')
-					done
-					echo -e "\t\t ${PORT[1]}" 	
-				done
-			
-			done
+			if [ $CONT -eq 1 ]; then
+				#LIST_ZONES="$ITEM"
+				LIST_ZONES="${ZONE[$CONT]}"
+			else
+				#LIST_ZONES="$LIST_ZONES;$ITEM"
+				LIST_ZONES="$LIST_ZONES;${ZONE[$CONT]}"
+			fi
+			CONT=$(($CONT+1))			
 		done
+		
+		echo -e " cfg:\t${CONF}"
+		echo -e "\t\t $LIST_ZONES" 
+		
+		#Para cada zone listar os alias
+		#echo "QTD ZONE: ${#ZONE[*]}"  #DEBUG		
+		QTD_ZONE="${#ZONE[*]}"
+		IFS=";" 
+		for I in $LIST_ZONES;do
+			echo -e " zone:\t $I"
+			ZONE_LIST=$(cat "$ZONE_FILE" | grep "$I" | cut -d "|" -f2-200 )
+			#echo "cat $ZONE_FILE | grep ${ZONE[$I]}"  	#DEBUG
+			#echo "ZONE_LIST: $ZONE_LIST" 				#DEBUG
+			IFS="|" 
+			CONT=1
+			for ITEM2 in $ZONE_LIST; do
+				ALIAS[$CONT]="$ITEM2"
+				if [ $CONT -eq 1 ]; then
+					LIST_ALIAS="$ITEM2"
+				else
+					LIST_ALIAS="$LIST_ALIAS;$ITEM2"
+				fi
+				CONT=$(($CONT+1))			
+			done
+			echo -e "\t\t$LIST_ALIAS" 
+						
+			# Para cada Alias listar o device
+			IFS=";" 
+			for I in $LIST_ALIAS;do
+				echo -e "  alias:\t$I"
+				ALIAS_LIST=$(cat "$ALIAS_FILE" | grep "$I")
+			
+				for ITEM3 in $ALIAS_LIST;do
+					PORT[1]=$(echo "$ITEM3" | awk -F"|" '{print $2}')
+				done
+				echo -e "\t\t${PORT[1]}" 	
+			done
+			
+		done
+	done
 		;;	
 	esac
 }
@@ -172,12 +233,12 @@ function insert()
 	EXISTE1=""
 	EXISTE2=""
 	
-	EXISTE1=$(consulte "$NAME" "$CFG_FILE")
+	EXISTE1=$(consulte "$NAME" "$PRINCIPAL_FILE")
 	EXISTE2=$(consulte2 "$ZONE1" "$ZONE_FILE")
 	EXISTE3=$(consulte2 "$ZONE2" "$ZONE_FILE")
 	
 	if [ "$EXISTE1" -eq 0 ] && [ "$EXISTE2" -eq 1 ] && [ "$EXISTE3" -eq 1 ]  ;then
-		echo "$NAME|PROJECT|$ZONE1|$ZONE2" >> "$CFG_FILE"
+		echo "$NAME|PROJECT|$ZONE1|$ZONE2" >> "$PRINCIPAL_FILE"
 		echo "$ENTIDADE \"$NAME\" created."
 		listAll "--auto"
 	else
@@ -186,17 +247,57 @@ function insert()
 	fi
 }
 
+function insertMultiplos()
+{
+	NAME="$1"
+	ITENS="$2"
+	
+	# Testar se ja existe a entidade, evitar cadastro repetido
+	EXISTE_NAME=""
+	EXISTE_NAME=$(consulte "$NAME" "$PRINCIPAL_FILE")
+	#echo "EXISTE_NAME: $EXISTE_NAME"
+	if [ "$EXISTE_NAME" -eq 1 ];then
+		echo "Could not create $ENTIDADE. Check the $ENTIDADE Name: \"$NAME\" reported"
+		return 1
+	fi
+	
+	#Inlcuindo o nome como o primeiro campo
+	NEW="$NAME|PROJECT"
+	
+	IFSOLD=$IFS
+	IFS=";" 
+	CONT=1
+	for ITEM in $ITENS; do
+		EXISTE_ITEM=""
+		EXISTE_ITEM=$(consulte2 "$ITEM" "$ZONE_FILE")
+		#echo "1 NEW: $NEW"
+		if [ "$EXISTE_ITEM" -eq 1 ];then
+			NEW="${NEW}|$ITEM"
+			#echo "2 NEW: $NEW"
+		else
+			echo "Could not create $ENTIDADE. Check the Zone name: \"$ITEM\" reported"
+			return 2		
+		fi
+	done
+	
+	IFS=$IFSOLD
+	
+	#Caso não tenha caido em uma exceção ele vai escrever o arquivo no texto
+	echo "$NEW" >> "$PRINCIPAL_FILE"
+	echo "$ENTIDADE \"$NAME\" created."
+	listAll "--auto"
+}
 
 function delete()
 {
 	NAME="$1"
 	EXISTE=""
-	EXISTE=$(consulte "$NAME" "$CFG_FILE")
+	EXISTE=$(consulte "$NAME" "$PRINCIPAL_FILE")
 	if [ "$EXISTE" -eq 0 ];then
 		echo "$ENTIDADE \"$NAME\" not found!"
 	else 
-		cat "$CFG_FILE" | grep -v "^$NAME" > temp
-		cat "temp" > "$CFG_FILE"
+		cat "$PRINCIPAL_FILE" | grep -v "^$NAME" > temp
+		cat "temp" > "$PRINCIPAL_FILE"
 		rm -f temp
 		echo "$ENTIDADE \"$NAME\" removed."
 		listAll "--auto"
@@ -209,17 +310,17 @@ function rename()
 	NAME="$1"
 	NEW_NAME="$2"
 	EXISTE=""
-	EXISTE=$(consulte "$NAME" "$CFG_FILE")
+	EXISTE=$(consulte "$NAME" "$PRINCIPAL_FILE")
 	if [ "$EXISTE" -eq 0 ];then
 		echo "$ENTIDADE $NAME not found!"
 	else 
 		EXISTE=""
-		EXISTE=$(consulte "$NEW_NAME" "$CFG_FILE")
+		EXISTE=$(consulte "$NEW_NAME" "$PRINCIPAL_FILE")
 		if [ "$EXISTE" -eq 0 ];then
-			NOVO=$(cat "$CFG_FILE" | grep "^$NAME"| sed "s/$NAME/$NEW_NAME/" )
-			cat "$CFG_FILE" | grep -v "^$NAME" > temp
-			cat "temp" > "$CFG_FILE"
-			echo "$NOVO" >> "$CFG_FILE"
+			NOVO=$(cat "$PRINCIPAL_FILE" | grep "^$NAME"| sed "s/$NAME/$NEW_NAME/" )
+			cat "$PRINCIPAL_FILE" | grep -v "^$NAME" > temp
+			cat "temp" > "$PRINCIPAL_FILE"
+			echo "$NOVO" >> "$PRINCIPAL_FILE"
 			echo "$ENTIDADE \"$NAME\" renamed for \"$NEW_NAME\"."
 			listAll "--auto"
 		else 
@@ -236,16 +337,16 @@ function copy()
 	NAME="$1"
 	NEW_NAME="$2"
 	EXISTE=""
-	EXISTE=$(consulte "$NAME" "$CFG_FILE")
+	EXISTE=$(consulte "$NAME" "$PRINCIPAL_FILE")
 	if [ "$EXISTE" -eq 0 ];then
 		echo "$ENTIDADE $NAME not found!"
 		return 0
 	else 
 		EXISTE=""
-		EXISTE=$(consulte "$NEW_NAME" "$CFG_FILE")
+		EXISTE=$(consulte "$NEW_NAME" "$PRINCIPAL_FILE")
 		if [ "$EXISTE" -eq 0 ];then
-			NOVO=$(cat "$CFG_FILE" | grep "^$NAME"| sed "s/$NAME/$NEW_NAME/" )
-			echo "$NOVO" >> "$CFG_FILE"
+			NOVO=$(cat "$PRINCIPAL_FILE" | grep "^$NAME"| sed "s/$NAME/$NEW_NAME/" )
+			echo "$NOVO" >> "$PRINCIPAL_FILE"
 			echo "$ENTIDADE \"$NAME\" copied for \"$NEW_NAME\"."
 			listAll "--auto"
 		else 
@@ -259,7 +360,7 @@ function enable()
 {
 	NAME="$1"
 	EXISTE=""
-	EXISTE=$(consulte "$NAME" "$CFG_FILE")
+	EXISTE=$(consulte "$NAME" "$PRINCIPAL_FILE")
 	if [ "$EXISTE" -eq 0 ];then
 		echo "$ENTIDADE \"$NAME\" not found!"
 		return 1
@@ -275,13 +376,13 @@ function enable()
 	case $RESP in 	
 		Y|YES)	
 			#Desativando todos
-			sed -i "s/ENABLE/DISABLE/" $CFG_FILE
-			sed -i "s/PROJECT/DISABLE/" $CFG_FILE  
+			sed -i "s/ENABLE/DISABLE/" $PRINCIPAL_FILE
+			sed -i "s/PROJECT/DISABLE/" $PRINCIPAL_FILE  
 			# ativando apenas o item desejado			
-			NOVO=$(cat "$CFG_FILE" | grep "^$NAME"| sed "s/DISABLE/ENABLE/" )
-			cat "$CFG_FILE" | grep -v "^$NAME" > temp
-			cat "temp" > "$CFG_FILE"
-			echo "$NOVO" >> "$CFG_FILE"
+			NOVO=$(cat "$PRINCIPAL_FILE" | grep "^$NAME"| sed "s/DISABLE/ENABLE/" )
+			cat "$PRINCIPAL_FILE" | grep -v "^$NAME" > temp
+			cat "temp" > "$PRINCIPAL_FILE"
+			echo "$NOVO" >> "$PRINCIPAL_FILE"
 			echo "zone config \"$NAME\" is in effect"
 			echo "Update flash ..."		
 			#echo "$ENTIDADE update sucessfuly."	
@@ -314,12 +415,12 @@ function disable()
 	case $RESP in 	
 		Y|YES)	
 			#Desativando todos
-			sed -i "s/ENABLE/PROJECT/" $CFG_FILE 
+			sed -i "s/ENABLE/PROJECT/" $PRINCIPAL_FILE 
 			# ativando apenas o item desejado			
-			NOVO=$(cat "$CFG_FILE" | grep "^$NAME"| sed "s/ENABLE/DISABLE/" )
-			cat "$CFG_FILE" | grep -v "^$NAME" > temp
-			cat "temp" > "$CFG_FILE"
-			echo "$NOVO" >> "$CFG_FILE"
+			NOVO=$(cat "$PRINCIPAL_FILE" | grep "^$NAME"| sed "s/ENABLE/DISABLE/" )
+			cat "$PRINCIPAL_FILE" | grep -v "^$NAME" > temp
+			cat "temp" > "$PRINCIPAL_FILE"
+			echo "$NOVO" >> "$PRINCIPAL_FILE"
 		
 			sleep 1s
 			echo "Update flash ..."		
@@ -384,7 +485,7 @@ function clearfuncion()
 	case $RESP in 	
 		Y|YES)	
 			## Limpando todas as configurações
-			echo > $CFG_FILE
+			echo > $PRINCIPAL_FILE
 			echo > $ZONE_FILE
 			echo > $ALIAS_FILE
 			echo > $DEFZONE_FILE
@@ -418,7 +519,8 @@ case "$OP" in
 		if [ "$#" -lt 2 ]; then
 			echo "Sintaxe error: $OP <CFG NAME> <\"ZONE_1;ZONE_2\">"
 		else
-			insert "$1" "$2"
+			#insert "$1" "$2"
+			insertMultiplos "$1" "$2"
 		fi	
 		;;
 	cfgshow)
