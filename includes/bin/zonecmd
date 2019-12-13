@@ -75,7 +75,17 @@ function listAll()
 	
 	DADOS=$(cat "$PRINCIPAL_FILE")
 	if [ -n "$DADOS" ];then
-		cat "$PRINCIPAL_FILE" | sed 's/|/\t|\t/g'
+        if [ -n "$1" ];then
+            ZONE_FILTER=$(cat "$PRINCIPAL_FILE"| grep "^$1" | sed 's/|/\t\t/g' )
+            if [ -n "$ZONE_FILTER" ];then    
+                echo -e " zone:\t$ZONE_FILTER"
+            else
+                echo -e " zone:\t$1 not found! Show all zones."
+                cat "$PRINCIPAL_FILE" | sed 's/|/\t\t/g'    
+            fi
+        else
+		    cat "$PRINCIPAL_FILE" | sed 's/|/\t\t/g'
+        fi
 	else
 		echo "Data not found!"	
 	fi	

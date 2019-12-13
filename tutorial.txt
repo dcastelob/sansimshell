@@ -1,0 +1,118 @@
+Tutorial
+
+1) Identifique as portas. Vamos criar 3 alias que utilizam as porta
+
+LNX01APP - 10:00:ff:05:1e:4b:d5:50
+W2k3APP  - 10:00:ff:05:1e:4b:d5:51
+STORAGE01  - 10:00:cd:06:22:1a:c3:37 
+
+Digite:
+
+admin> alicreate "LNX01APP" "10:00:ff:05:1e:4b:d5:50"
+admin> alicreate "W2k3APP" "10:00:ff:05:1e:4b:d5:51"
+admin> alicreate "STORAGE01" "10:00:cd:06:22:1a:c3:37"
+
+2) Vamos criar duas zonas
+
+LNX01APP_STG01 = LNX01APP - STORAGE01
+
+W2k3APP_STG01  = W2k3APP - STORAGE01
+
+
+Brocade_SW:admin> zonecreate LNX01APP_STG01 "LNX01APP;STORAGE01"   
+Zone "LNX01APP_STG01" created.
+
+Brocade_SW:admin> zonecreate W2k3APP_STG01 "W2k3APP;STORAGE01"
+Zone "W2k3APP_STG01" created.
+
+Brocade_SW:admin> zoneshow  
+
+LNX01APP_STG01		LNX01APP		STORAGE01
+W2k3APP_STG01		W2k3APP		STORAGE01
+
+3) Criar configurações com a zonas criadas
+
+Brocade_SW:admin> cfgshow  
+Defined configuration:
+
+Effective configuration:
+
+Brocade_SW:admin> cfgcreate principal "LNX01APP_STG01;W2k3APP_STG01"
+Cfg "principal" created.
+
+Brocade_SW:admin> cfgshow
+Defined configuration:
+ cfg:	principal	LNX01APP_STG01;W2k3APP_STG01
+ zone:	LNX01APP_STG01
+		LNX01APP;STORAGE01
+  alias:	LNX01APP
+		10:00:ff:05:1e:4b:d5:50
+  alias:	STORAGE01
+		10:00:cd:06:22:1a:c3:37
+ zone:	W2k3APP_STG01
+		W2k3APP;STORAGE01
+  alias:	W2k3APP
+		10:00:ff:05:1e:4b:d5:51
+  alias:	STORAGE01
+		10:00:cd:06:22:1a:c3:37
+
+Effective configuration:
+No Effective configurateion: (No Access)
+
+Brocade_SW:admin> 
+
+
+
+4) salvar a configuração
+
+Brocade_SW:admin> cfgsave
+You are about to save the Defined zoning Configuration. This action will only save the changes on Defined configuration.
+Any changes made on Effective configuration will not take affect until it is re-enabled.
+Do you want to save Defined zoning configuration only? (yes, y, no, n): [no] yes
+Cfg update sucessfuly.
+Update flash ...
+
+
+%) Habilitar a configuraçao no ambiente de produção
+
+Brocade_SW:admin> cfgenable principal 
+You are about to enable a new zonning configuration. This action will replace  the old zoning configuration with the current configuration selected. If the update changes to one or more traffic isolation zones, the update may result in localized disruption to trafic on ports associated with the traffic isolation zone changes.
+Do you want to enable "principal" configuration? (yes, y, no, n): [no] yes
+Zone config "principal" is in effect
+Update flash ..c.fgshow
+
+Cfg update sucessfuly!
+
+Brocade_SW:admin> Defined configuration:
+ cfg:	principal	LNX01APP_STG01;W2k3APP_STG01
+ zone:	LNX01APP_STG01
+		LNX01APP;STORAGE01
+  alias:	LNX01APP
+		10:00:ff:05:1e:4b:d5:50
+  alias:	STORAGE01
+		10:00:cd:06:22:1a:c3:37
+ zone:	W2k3APP_STG01
+		W2k3APP;STORAGE01
+  alias:	W2k3APP
+		10:00:ff:05:1e:4b:d5:51
+  alias:	STORAGE01
+		10:00:cd:06:22:1a:c3:37
+
+Effective configuration:
+ cfg:	principal
+		 LNX01APP_STG01;W2k3APP_STG01
+ zone:	 LNX01APP_STG01
+		LNX01APP;STORAGE01
+  alias:	LNX01APP
+		10:00:ff:05:1e:4b:d5:50
+  alias:	STORAGE01
+		10:00:cd:06:22:1a:c3:37
+ zone:	 W2k3APP_STG01
+		W2k3APP;STORAGE01
+  alias:	W2k3APP
+		10:00:ff:05:1e:4b:d5:51
+  alias:	STORAGE01
+		10:00:cd:06:22:1a:c3:37
+
+
+

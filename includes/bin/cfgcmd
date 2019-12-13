@@ -103,15 +103,14 @@ function listAll()
 			CONT=$(($CONT+1))			
 		done
 		
-		echo -e " cfg:\t${CONF}"
-		echo -e "\t\t $LIST_ZONES" 
+		echo -e " cfg:\t${CONF}\t$LIST_ZONES" 
 		
 		#Para cada zone listar os alias
 		#echo "QTD ZONE: ${#ZONE[*]}"  #DEBUG		
 		QTD_ZONE="${#ZONE[*]}"
 		IFS=";" 
 		for I in $LIST_ZONES;do
-			echo -e " zone:\t $I"
+			echo -e " zone:\t$I"
 			ZONE_LIST=$(cat "$ZONE_FILE" | grep "$I" | cut -d "|" -f2-200 )
 			#echo "cat $ZONE_FILE | grep ${ZONE[$I]}"  	#DEBUG
 			#echo "ZONE_LIST: $ZONE_LIST" 				#DEBUG
@@ -367,7 +366,7 @@ function enable()
 	fi
 	
 	echo "You are about to enable a new zonning configuration. This action will replace  the old zoning configuration with the current configuration selected. If the update changes to one or more traffic isolation zones, the update may result in localized disruption to trafic on ports associated with the traffic isolation zone changes."  
-	echo "Do you want to enable \"$NAME\" configuration? (yes, y, no, n): [no] "
+	echo -n "Do you want to enable \"$NAME\" configuration? (yes, y, no, n): [no] "
 	read -p " " RESP
 	
 	RESP=$(echo "${RESP:-"N"}")
@@ -383,19 +382,22 @@ function enable()
 			cat "$PRINCIPAL_FILE" | grep -v "^$NAME" > temp
 			cat "temp" > "$PRINCIPAL_FILE"
 			echo "$NOVO" >> "$PRINCIPAL_FILE"
-			echo "zone config \"$NAME\" is in effect"
-			echo "Update flash ..."		
-			#echo "$ENTIDADE update sucessfuly."	
+			echo "Zone config \"$NAME\" is in effect"
+			echo -n "Update flash "
+            for i in $(seq 1 3); do
+                echo -n "."; sleep 2s               
+            done		
+			echo -e "\n$ENTIDADE update sucessfuly!"	
 			listAll "--auto"
 			;;
 		N|NO)
-			echo "Aborted"
+			echo "Operation canceled..."
 			return 1
 			;;
 		*)
 			echo
 			echo "Invalid option select (yes, y, no, n)"
-			echo "Aborted"
+			echo "Operation canceled..."
 			return 2
 			;;			
 	esac	
@@ -406,7 +408,7 @@ function disable()
 {
 	
 	echo "You are about to disable zonning configuration. This action will disable any previous zoning configuration enabled."  
-	echo "Do you want to disable zoning configuration? (yes, y, no, n): [no] "
+	echo -n "Do you want to disable zoning configuration? (yes, y, no, n): [no] "
 	read -p " " RESP
 	
 	RESP=$(echo "${RESP:-"N"}")
@@ -428,13 +430,13 @@ function disable()
 			listAll "--auto"
 			;;
 		N|NO)
-			echo "Aborted"
+			echo "Operation canceled..."
 			return 1
 			;;
 		*)
 			echo
 			echo "Invalid option select (yes, y, no, n)"
-			echo "Aborted"
+			echo "Operation canceled..."
 			return 2
 			;;			
 	esac
@@ -445,7 +447,7 @@ function save()
 {
 	echo "You are about to save the Defined zoning Configuration. This action will only save the changes on Defined configuration."  
 	echo "Any changes made on Effective configuration will not take affect until it is re-enabled."
-	echo "Do you want to save Defined zoning configuration only? (yes, y, no, n): [no] "
+	echo -n "Do you want to save Defined zoning configuration only? (yes, y, no, n): [no] "
 	read -p " " RESP
 	
 	RESP=$(echo "${RESP:-"N"}")
@@ -458,13 +460,13 @@ function save()
 			listAll "--auto"
 			;;
 		N|NO)
-			echo "Aborted"
+			echo "Operation canceled..."
 			return 1
 			;;
 		*)
 			echo
 			echo "Invalid option select (yes, y, no, n)"
-			echo "Aborted"
+			echo "Operation canceled..."
 			return 2
 			;;			
 	esac

@@ -1,0 +1,85 @@
+FONTE: https://vmarena.com/how-to-create-zones-from-cli-on-a-brocade-san-switch/
+
+
+INTRODUCAO
+
+O zoneamento da SAN é um método de criar grupos lógicos sobre a configuração física da malha e permitir a comunicação / acesso de dispositivos Fibre Channel agrupando-os. E o zoneamento gerencia a comunicação de hosts e nós de armazenamento, a zona contém o nome WWN desses dispositivos. 
+
+Um nome mundial, ou WWN, é um endereço de 64 bits usado em redes Fibre Channel para identificar exclusivamente cada elemento em uma rede Fibre Channel. Normalmente, todo mundo usa a GUI para criar zona porque parece muito fácil na GUI, mas existe uma dependência do JAVA. versão específica. Quando rodamos a versão mais recente do java, enfrentaremos dificuldades com o modo GUI, portanto, temos que ir com a CLI.
+
+Aqui, descrevo o procedimento a ser seguido para configurar o zoneamento em um comutador Brocade usando a CLI. Siga o procedimento abaixo para criar uma zona a partir da CLI 
+
+1) Visualizando as configurções de HBA
+=======================================
+Execute o comando "switchshow".
+Isso ajudará a identificar o endereço HBA do destino e do destino. portas do iniciador que serão necessárias para a configuração.
+
+admin> switchshow
+
+Nota : Todos os dispositivos que se conectam usando o NPIV usam o comando "nsshow" para encontrar os endereços WWPN conectados à porta. Se você não encontrar a lista WWPN, é necessário identificar o WWPN manualmente no servidor/HBA e executar "nodefind WWPN" para verificar se o WWPN está disponível no switch para zoneamento.
+
+2) Visualizando as configurações do switch SAN
+==============================================
+Execute o comando "cfgshow"
+
+admin> cfgshow
+
+O comando "cfgshow" exibirá a configuração e como o zoneamento está atualmente configurado. Isso exibirá duas seções, Configuração Definida e Configuração Efetiva.
+
+ - "Configuração definida" (Defined configuration): É a seção na qual as "zonas" e "aliases" estão listados. Quaisquer configurações de zoneamento criadas anteriormente disponíveis também são exibidas.
+
+ - "Configuração Efetiva" (Effective configuration): É a atual configuração em execução ou configuração em produção.
+
+3) Criando aliases
+==================
+Execute o comando "alicreate" para criar aliases para os endereços HBA que você identificou executando o comando "switchshow" ou manualmente.
+
+admin> alicreate "ALIAS_NAME", "WWPN"
+
+Nota: Você pode fazer isso para os endereços "Iniciadores" (Inittiators) e "Destino" (Targets).
+
+4) Criar Zonas
+==============
+Execute o comando "zonecreate" para criar a zona.
+
+admin> zonecreate "ZONE_NAME", "ALIAS_NAME_OF_INITIATOR"
+
+Ao criar uma zona, podemos inserir vários alias ou alias únicos; vários alias podem ser adicionados por "ALIAS1;ALIAS2". 
+Observe também que não deve haver espaço após o nome da zona.
+
+5) Adicionar aliases à zona
+===========================
+Podemos adicionar aliases a uma zona já existente. Para isso execute o comando "zoneadd" para adicionar os aliases das portas de Destino à zona que foi criada.
+
+admin> zoneadd "ZONE_NAME", "ALIAS_OF_TARGET (S)"
+
+
+6)Adicionar a zona a uma configuração 
+=====================================
+Depois que a zona for criada, adicione-a a uma configuração ativa ou a uma nova configuração executando o comando "cfgadd" ou "cfgcreate"
+
+6.1) Adicionar a uma "configuração existente"  
+
+admin> cfgadd "CONFIG_NAME", "ZONE_NAME"
+
+6.2) Adicione a nova zona de criação à configuração
+
+admin> cfgcreate "NEW_CFG_NAME", "ZONE_NAME"
+
+7. Salvar a configuração
+========================
+Salvar a configuração executando o "cfgsave". E ele solicitará sim/não. Você precisará digitar "yes/y" no prompt para salvar a configuração e isso não colocará a configuração em produção.
+
+admin> cfgsave
+
+8. Ativar zoneamento
+====================
+Para ativar o zoneamento criado, execute o "cfgenable", que solicitará sim/não, você deverá digitar yes no prompt para ativar a configuração.
+
+admin> cfgenable CONFIG_NAME
+
+Nota: Isso colocará a zona na "Configuração Efetiva" e entrará em produção.
+
+
+
+

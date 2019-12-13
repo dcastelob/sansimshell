@@ -4,6 +4,7 @@
 PATH="/usr/lib64/qt-3.3/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin:/home/dcastelob/.local/bin:/home/dcastelob/bin"
 
 source includes/conf/options.conf
+source includes/conf/simulator.conf
 
 CFG_FILE="includes/var/cfgs.db"
 ZONE_FILE="includes/var/zones.db"
@@ -61,6 +62,21 @@ function listAll()
 	#Lista as portas do switch
 	DADOS=$(cat "$PORTS_FILE")
 	if [ -n "$DADOS" ];then
+        echo -e "switchName:\t $SWITCHNAME"
+        echo -e "switchType:\t $SWITCH_TYPE"
+        echo -e "switchState:\t $SWITCH_STATE"
+        echo -e "switchMode:\t $SWITCH_MODE"
+        echo -e "switchRole:\t $SWITCH_ROLE"
+        echo -e "switchDomain:\t $SWITCH_DOMAIN"
+        echo -e "switchChild:\t $SWITCH_CHILD"
+        echo -e "switchRole:\t $SWITCH_ROLE"
+        echo -e "switchWwn:\t $SWITCH_WWN"
+        echo -e "Zoning:\t\t $SWITCH_ZONING"
+        echo -e "switchBeacon:\t $SWITCH_BEACON"
+        echo -e "PC Router:\t $SWITCH_PCROUTER"
+        echo -e "PC Router BB Fabric ID:\t $SWITCH_PCROUTERBB"
+        echo -e "Address Mode:\t $SWITCH_ADDRMODE"
+        echo
 		cat "$PORTS_FILE" 
 	else
 		echo "Data not found!"	
